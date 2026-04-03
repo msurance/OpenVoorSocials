@@ -13,7 +13,7 @@ services:
     volumes:
       - media_data:/app/media
     ports:
-      - "5001:8000"
+      - "5005:8000"
 
   cron:
     build:
