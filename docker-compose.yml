@@ -8,6 +8,7 @@ services:
       sh -c "echo 'Waiting for DB...' &&
              until python -c \"import psycopg2, os; psycopg2.connect(os.environ['DATABASE_URL']); print('DB ready')\" 2>/dev/null; do sleep 2; done &&
              python manage.py migrate --noinput &&
+             python manage.py createsuperuser --noinput 2>/dev/null || true &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
     env_file: .env
     environment:
