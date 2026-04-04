@@ -8,14 +8,20 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+_STATIC_BANNER_INSTRUCTION = (
+    "The dark navy bar at the very bottom of the frame with the brand logo and text "
+    "is a static UI overlay — keep it completely sharp, fully visible, and unchanged "
+    "throughout the entire video. Do not animate, fade, blur, or distort it."
+)
+
 _MOTION_PROMPTS = {
-    'love': 'Soft warm glow, gentle bokeh drift, romantic cinematic stillness with subtle depth of field movement',
-    'friends': 'Natural warmth, gentle ambient light flicker, subtle background movement, social energy',
-    'travel': 'Scenic atmosphere, gentle camera drift, cinematic depth, natural light shift',
-    'sports': 'Dynamic energy, subtle motion blur on edges, athletic atmosphere',
-    'parents': 'Soft domestic warmth, gentle afternoon light shift, cozy peaceful movement',
+    'love': f'Soft warm glow, gentle bokeh drift, romantic cinematic stillness with subtle depth of field movement. {_STATIC_BANNER_INSTRUCTION}',
+    'friends': f'Natural warmth, gentle ambient light flicker, subtle background movement, social energy. {_STATIC_BANNER_INSTRUCTION}',
+    'travel': f'Scenic atmosphere, gentle camera drift, cinematic depth, natural light shift. {_STATIC_BANNER_INSTRUCTION}',
+    'sports': f'Dynamic energy, subtle motion blur on edges, athletic atmosphere. {_STATIC_BANNER_INSTRUCTION}',
+    'parents': f'Soft domestic warmth, gentle afternoon light shift, cozy peaceful movement. {_STATIC_BANNER_INSTRUCTION}',
 }
-_DEFAULT_MOTION = 'Gentle camera movement, soft ambient animation, cinematic warmth'
+_DEFAULT_MOTION = f'Gentle camera movement, soft ambient animation, cinematic warmth. {_STATIC_BANNER_INSTRUCTION}'
 
 
 def generate_video(post_id: str, image_path_relative: str, category: str, week_number: int, year: int) -> str:
