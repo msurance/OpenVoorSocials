@@ -100,13 +100,14 @@ def publish_to_facebook(post) -> str:
     logger.info("Facebook image/feed published for post %s → fb_id=%s", post.id, post_id)
 
     # Also publish as Reel if video exists
+    reel_id = ''
     if post.video_path and post.video_url:
         try:
-            _publish_fb_reel(token, proof, page_id, post)
+            reel_id = _publish_fb_reel(token, proof, page_id, post)
         except Exception as exc:
             logger.error("Facebook Reel failed for post %s (feed post still published): %s", post.id, exc)
 
-    return post_id
+    return ','.join(filter(None, [post_id, reel_id]))
 
 
 def _publish_fb_reel(token, proof, page_id, post):
@@ -165,3 +166,4 @@ def _publish_fb_reel(token, proof, page_id, post):
         finish_resp.raise_for_status()
 
     logger.info("Facebook Reel published for post %s → video_id=%s", post.id, video_id)
+    return video_id

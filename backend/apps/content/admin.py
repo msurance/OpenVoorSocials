@@ -41,7 +41,7 @@ class SocialPostAdmin(admin.ModelAdmin):
         'image_thumbnail',
         'scheduled_at',
         'status_badge',
-        'platform',
+        'publish_status',
     )
     list_filter = ('status', 'category', 'platform', 'week_number')
     search_fields = ('copy_nl', 'hashtags')
@@ -50,10 +50,13 @@ class SocialPostAdmin(admin.ModelAdmin):
         'id',
         'image_preview',
         'video_preview',
+        'publish_status_detail',
         'created_at',
         'published_at',
         'facebook_post_id',
+        'facebook_reel_id',
         'instagram_post_id',
+        'instagram_reel_id',
         'error_message',
     )
     fieldsets = (
@@ -68,9 +71,12 @@ class SocialPostAdmin(admin.ModelAdmin):
         }),
         ('Publishing results', {
             'fields': (
+                'publish_status_detail',
                 'published_at',
                 'facebook_post_id',
+                'facebook_reel_id',
                 'instagram_post_id',
+                'instagram_reel_id',
                 'error_message',
             ),
             'classes': ('collapse',),
@@ -143,6 +149,56 @@ class SocialPostAdmin(admin.ModelAdmin):
             '<video src="{url}" style="max-width:400px;border-radius:8px;" controls></video>',
             url=self._versioned_url_for(obj.video_url, obj.video_path),
         )
+
+    @admin.display(description='Publicatie')
+    def publish_status(self, obj):
+        if obj.status not in ('published', 'failed'):
+            return '—'
+        checks = [
+            ('FB post', obj.facebook_post_id),
+            ('FB reel', obj.facebook_reel_id),
+            ('IG post', obj.instagram_post_id),
+            ('IG reel', obj.instagram_reel_id),
+        ]
+        parts = []
+        for label, value in checks:
+            if value:
+                parts.append(
+                    f'<span style="color:#198754;font-weight:600" title="{value}">✓ {label}</span>'
+                )
+            else:
+                parts.append(
+                    f'<span style="color:#dc3545" title="niet gepubliceerd">✗ {label}</span>'
+                )
+        return format_html(' &nbsp; '.join(parts))
+
+    @admin.display(description='Publicatiestatus')
+    def publish_status_detail(self, obj):
+        if obj.status not in ('published', 'failed'):
+            return '—'
+        rows = [
+            ('Facebook post', obj.facebook_post_id, f'https://facebook.com/{obj.facebook_post_id}' if obj.facebook_post_id else None),
+            ('Facebook reel', obj.facebook_reel_id, None),
+            ('Instagram post', obj.instagram_post_id, None),
+            ('Instagram reel', obj.instagram_reel_id, None),
+        ]
+        html = '<table style="border-collapse:collapse;width:100%">'
+        for label, value, link in rows:
+            if value:
+                cell = f'<a href="{link}" target="_blank">{value}</a>' if link else value
+                icon = '<span style="color:#198754;font-weight:700">✓</span>'
+            else:
+                cell = '<em style="color:#6c757d">niet gepubliceerd</em>'
+                icon = '<span style="color:#dc3545;font-weight:700">✗</span>'
+            html += (
+                f'<tr><td style="padding:3px 8px">{icon}</td>'
+                f'<td style="padding:3px 8px;font-weight:600">{label}</td>'
+                f'<td style="padding:3px 8px">{cell}</td></tr>'
+            )
+        html += '</table>'
+        if obj.error_message:
+            html += f'<p style="color:#dc3545;margin-top:8px"><strong>Fout:</strong> {obj.error_message}</p>'
+        return format_html(html)
 
     def _versioned_url(self, obj):
         """Append file mtime as cache-buster so regenerated images always reload."""
@@ -285,16 +341,22 @@ class SocialPostAdmin(admin.ModelAdmin):
 
             if post.platform in ('facebook', 'both'):
                 try:
-                    fb_id = publish_to_facebook(post)
-                    post.facebook_post_id = fb_id
+                    result = publish_to_facebook(post)
+                    # publish_to_facebook returns "post_id" or "post_id,reel_id"
+                    parts = (result or '').split(',')
+                    post.facebook_post_id = parts[0] if len(parts) > 0 else ''
+                    post.facebook_reel_id = parts[1] if len(parts) > 1 else ''
                 except Exception as exc:
                     logger.error(f"Admin publish_now Facebook failed for {post.id}: {exc}")
                     errors.append(f"Facebook: {exc}")
 
             if post.platform in ('instagram', 'both'):
                 try:
-                    ig_id = publish_to_instagram(post)
-                    post.instagram_post_id = ig_id
+                    result = publish_to_instagram(post)
+                    # publish_to_instagram returns "image_id" or "image_id,reel_id"
+                    parts = (result or '').split(',')
+                    post.instagram_post_id = parts[0] if len(parts) > 0 else ''
+                    post.instagram_reel_id = parts[1] if len(parts) > 1 else ''
                 except Exception as exc:
                     logger.error(f"Admin publish_now Instagram failed for {post.id}: {exc}")
                     errors.append(f"Instagram: {exc}")
@@ -318,7 +380,8 @@ class SocialPostAdmin(admin.ModelAdmin):
                 post.error_message = ''
                 post.save(update_fields=[
                     'status', 'published_at', 'error_message',
-                    'facebook_post_id', 'instagram_post_id',
+                    'facebook_post_id', 'facebook_reel_id',
+                    'instagram_post_id', 'instagram_reel_id',
                 ])
                 success_count += 1
 
