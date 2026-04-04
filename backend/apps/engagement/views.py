@@ -54,26 +54,26 @@ def facebook_webhook(request):
             field = change.get('field')
             value = change.get('value', {})
 
-            if field == 'feed' and value.get('item') == 'comment':
-                # Facebook Page feed comment
-                handle_comment(
-                    comment_id=value.get('comment_id', ''),
-                    user_id=value.get('from', {}).get('id', ''),
-                    user_name=value.get('from', {}).get('name', ''),
-                    post_id=value.get('post_id', ''),
-                    message=value.get('message', ''),
-                    platform='facebook',
-                )
-
-            elif field == 'comments':
-                # Instagram comment
-                handle_comment(
-                    comment_id=value.get('id', ''),
-                    user_id=value.get('from', {}).get('id', ''),
-                    user_name=value.get('from', {}).get('username', ''),
-                    post_id=value.get('media', {}).get('id', ''),
-                    message=value.get('text', ''),
-                    platform='instagram',
-                )
+            try:
+                if field == 'feed' and value.get('item') == 'comment':
+                    handle_comment(
+                        comment_id=value.get('comment_id', ''),
+                        user_id=value.get('from', {}).get('id', ''),
+                        user_name=value.get('from', {}).get('name', ''),
+                        post_id=value.get('post_id', ''),
+                        message=value.get('message', ''),
+                        platform='facebook',
+                    )
+                elif field == 'comments':
+                    handle_comment(
+                        comment_id=value.get('id', ''),
+                        user_id=value.get('from', {}).get('id', ''),
+                        user_name=value.get('from', {}).get('username', ''),
+                        post_id=value.get('media', {}).get('id', ''),
+                        message=value.get('text', ''),
+                        platform='instagram',
+                    )
+            except Exception as exc:
+                logger.exception("Unhandled error processing webhook field=%s: %s", field, exc)
 
     return JsonResponse({'status': 'ok'})
