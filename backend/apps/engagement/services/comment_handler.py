@@ -8,23 +8,27 @@ from apps.publishing.services.facebook_publisher import _get_page_token, _appsec
 logger = logging.getLogger(__name__)
 
 _FB_CODE_REPLY = (
-    "Bedankt voor je reactie, {name}! \U0001f389 "
-    "Hier is jouw unieke kortingscode: {code}\n"
-    "Voer deze in op https://openvoor.app om je account te activeren. Veel succes!"
+    "Wat leuk dat je reageert, {name}! \U0001f917\n\n"
+    "Jouw persoonlijke kortingscode: \U0001f3ab {code}\n\n"
+    "Ga naar https://openvoor.app, maak je profiel aan en voer de code in bij het afrekenen "
+    "\u2014 dan start je jouw eerste maand gratis. Echte mensen, echte connecties. Veel succes! \u2728"
 )
 
 _IG_CODE_REPLY = (
-    "Bedankt {name}! \U0001f389 Jouw kortingscode: {code} \u2014 "
-    "voer hem in op https://openvoor.app om je account te activeren!"
+    "Wat leuk {name}! \U0001f917 Jouw kortingscode: \U0001f3ab {code}\n"
+    "Maak je profiel aan op https://openvoor.app en voer hem in bij het afrekenen. "
+    "Echte mensen, echte connecties \u2728"
 )
 
 _FB_NO_CODES_REPLY = (
-    "Bedankt voor je reactie, {name}! Helaas zijn alle kortingscodes al geclaimd. "
-    "Volg onze pagina voor de volgende actie!"
+    "Aah {name}, je bent er net te laat bij! \U0001f625 "
+    "Alle codes voor deze actie zijn al geclaimd. "
+    "Volg onze pagina \u2014 we lanceren binnenkort een nieuwe ronde! \U0001f440"
 )
 
 _IG_NO_CODES_REPLY = (
-    "Bedankt {name}! Helaas zijn alle codes al geclaimd \u2014 volg ons voor de volgende actie!"
+    "Aah {name}, te laat! \U0001f625 Alle codes zijn al weg. "
+    "Volg ons voor de volgende actie \U0001f440"
 )
 
 
