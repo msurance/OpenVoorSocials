@@ -1,5 +1,8 @@
 import logging
+import os
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
@@ -107,7 +110,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             return '—'
         return format_html(
             '<img src="{url}" style="max-height:60px;border-radius:4px;" />',
-            url=obj.image_url,
+            url=self._versioned_url(obj),
         )
 
     @admin.display(description='Status', ordering='status')
@@ -128,8 +131,20 @@ class SocialPostAdmin(admin.ModelAdmin):
             return '—'
         return format_html(
             '<img src="{url}" style="max-width:400px;border-radius:8px;" />',
-            url=obj.image_url,
+            url=self._versioned_url(obj),
         )
+
+    def _versioned_url(self, obj):
+        """Append file mtime as cache-buster so regenerated images always reload."""
+        url = obj.image_url
+        if obj.image_path:
+            try:
+                abs_path = Path(settings.MEDIA_ROOT) / obj.image_path
+                mtime = int(os.path.getmtime(abs_path))
+                url = f"{url}?v={mtime}"
+            except OSError:
+                pass
+        return url
 
     # ------------------------------------------------------------------
     # Admin actions
