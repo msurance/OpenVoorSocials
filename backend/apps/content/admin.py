@@ -225,31 +225,39 @@ class SocialPostAdmin(admin.ModelAdmin):
         if success_count:
             self.message_user(request, f'{success_count} afbeelding(en) opnieuw gegenereerd.', messages.SUCCESS)
 
-    @admin.action(description='Video genereren (Kling AI)')
+    @admin.action(description='Video genereren (Kling AI — async)')
     def generate_video(self, request, queryset):
+        import threading
         from apps.content.services.video_generator import generate_video as gen_video
+        import django.db
 
-        success_count = 0
-        fail_count = 0
+        posts = [(str(p.id), p.image_path, p.category, p.week_number, p.year)
+                 for p in queryset if p.image_path]
+        skipped = queryset.count() - len(posts)
 
-        for post in queryset:
-            if not post.image_path:
-                self.message_user(request, f'Post {post.id} overgeslagen: geen afbeelding.', messages.WARNING)
-                continue
+        if not posts:
+            self.message_user(request, 'Geen posts met afbeelding geselecteerd.', messages.WARNING)
+            return
+
+        def _run(post_args):
+            # Close any inherited DB connection — thread needs its own
+            django.db.connections.close_all()
+            post_id, image_path, category, week_number, year = post_args
             try:
-                relative_path = gen_video(
-                    str(post.id), post.image_path, post.category, post.week_number, post.year
-                )
-                post.video_path = relative_path
-                post.save(update_fields=['video_path'])
-                success_count += 1
+                relative_path = gen_video(post_id, image_path, category, week_number, year)
+                SocialPost.objects.filter(id=post_id).update(video_path=relative_path)
+                logger.info("Background video done: %s → %s", post_id, relative_path)
             except Exception as exc:
-                logger.error('Admin generate_video failed for %s: %s', post.id, exc)
-                self.message_user(request, f'Post {post.id} mislukt: {exc}', messages.ERROR)
-                fail_count += 1
+                logger.error("Background video FAILED for %s: %s", post_id, exc)
 
-        if success_count:
-            self.message_user(request, f'{success_count} video(s) gegenereerd.', messages.SUCCESS)
+        for post_args in posts:
+            t = threading.Thread(target=_run, args=(post_args,), daemon=True)
+            t.start()
+
+        msg = f'{len(posts)} video(s) worden op de achtergrond gegenereerd (~90s per video). Ververs de pagina om het resultaat te zien.'
+        if skipped:
+            msg += f' {skipped} overgeslagen (geen afbeelding).'
+        self.message_user(request, msg, messages.SUCCESS)
 
     @admin.action(description='Goedkeuren')
     def approve_posts(self, request, queryset):

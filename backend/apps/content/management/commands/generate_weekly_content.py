@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 logger.error("Image generation failed for %s: %s", post.id, exc, exc_info=True)
                 self.stdout.write(self.style.ERROR(f"  Image FAILED for {post.id}: {exc}"))
 
-        self.stdout.write(f"Generating {len(created)} videos...")
+        self.stdout.write(f"Generating {len(created)} videos (sequential, ~90s each)...")
         for post in created:
             if not post.image_path:
                 self.stdout.write(self.style.WARNING(f"  Video skipped (no image): {post.id}"))
@@ -99,6 +99,7 @@ class Command(BaseCommand):
             except Exception as exc:
                 logger.error("Video generation failed for %s: %s", post.id, exc, exc_info=True)
                 self.stdout.write(self.style.ERROR(f"  Video FAILED for {post.id}: {exc}"))
+                # Continue — one failed video shouldn't stop the rest
 
         self.stdout.write(
             self.style.SUCCESS(
