@@ -42,6 +42,13 @@ Elke post moet:
 3. Eindigen met een zachte call-to-action richting OpenVoor.app
 4. 3-7 relevante Belgische/Nederlandse hashtags bevatten
 5. Een concrete, levendige beschrijving bevatten voor een lifestyle foto (image_prompt)
+
+Belangrijk voor image_prompt:
+- Beschrijf ALLEEN volwassenen (30-50 jaar) — geen kinderen, geen baby's
+- Voor de categorie 'parents': toon de ouder in een gezinscontext via rekwisieten en omgeving
+  (speelgoed op tafel, kindertekeningen aan de muur, kleine laarsjes bij de deur, speeltuin op achtergrond)
+  maar zet GEEN kinderen in het beeld zelf
+- De foto moet realistisch en authentiek aanvoelen, Belgische setting
 """
 
 

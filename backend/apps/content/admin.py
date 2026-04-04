@@ -76,7 +76,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images']
+    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images']
 
     # ------------------------------------------------------------------
     # Display helpers
@@ -170,6 +170,32 @@ class SocialPostAdmin(admin.ModelAdmin):
             self.message_user(request, f'{success_count} afbeelding(en) gegenereerd.', messages.SUCCESS)
         if skip_count:
             self.message_user(request, f'{skip_count} post(s) overgeslagen (al een afbeelding of geen prompt).', messages.WARNING)
+
+    @admin.action(description='Afbeelding overschrijven (opnieuw genereren)')
+    def regenerate_images(self, request, queryset):
+        from apps.content.services.image_generator import generate_image
+
+        success_count = 0
+        fail_count = 0
+
+        for post in queryset:
+            if not post.image_prompt:
+                self.message_user(request, f'Post {post.id} overgeslagen: geen prompt.', messages.WARNING)
+                continue
+            try:
+                relative_path = generate_image(
+                    str(post.id), post.image_prompt, post.week_number, post.year, post.category
+                )
+                post.image_path = relative_path
+                post.save(update_fields=['image_path'])
+                success_count += 1
+            except Exception as exc:
+                logger.error('Admin regenerate_images failed for %s: %s', post.id, exc)
+                self.message_user(request, f'Post {post.id} mislukt: {exc}', messages.ERROR)
+                fail_count += 1
+
+        if success_count:
+            self.message_user(request, f'{success_count} afbeelding(en) opnieuw gegenereerd.', messages.SUCCESS)
 
     @admin.action(description='Goedkeuren')
     def approve_posts(self, request, queryset):
