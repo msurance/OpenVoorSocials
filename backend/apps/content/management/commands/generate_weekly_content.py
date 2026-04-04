@@ -6,6 +6,7 @@ from django.utils import timezone
 from apps.content.models import SocialPost
 from apps.content.services.content_generator import generate_weekly_posts
 from apps.content.services.image_generator import generate_image
+from apps.content.services.video_generator import generate_video
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +75,7 @@ class Command(BaseCommand):
         for post in created:
             try:
                 relative_path = generate_image(
-                    str(post.id),
-                    post.image_prompt,
-                    week_number,
-                    year,
+                    str(post.id), post.image_prompt, week_number, year, post.category
                 )
                 post.image_path = relative_path
                 post.save(update_fields=['image_path'])
@@ -85,6 +83,22 @@ class Command(BaseCommand):
             except Exception as exc:
                 logger.error("Image generation failed for %s: %s", post.id, exc, exc_info=True)
                 self.stdout.write(self.style.ERROR(f"  Image FAILED for {post.id}: {exc}"))
+
+        self.stdout.write(f"Generating {len(created)} videos...")
+        for post in created:
+            if not post.image_path:
+                self.stdout.write(self.style.WARNING(f"  Video skipped (no image): {post.id}"))
+                continue
+            try:
+                relative_path = generate_video(
+                    str(post.id), post.image_path, post.category, week_number, year
+                )
+                post.video_path = relative_path
+                post.save(update_fields=['video_path'])
+                self.stdout.write(f"  Video OK: {post.id}")
+            except Exception as exc:
+                logger.error("Video generation failed for %s: %s", post.id, exc, exc_info=True)
+                self.stdout.write(self.style.ERROR(f"  Video FAILED for {post.id}: {exc}"))
 
         self.stdout.write(
             self.style.SUCCESS(
