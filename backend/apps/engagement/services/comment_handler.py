@@ -55,7 +55,7 @@ def handle_comment(
         logger.info("Already replied to %s comment %s — skipping", platform, comment_id)
         return
 
-    logger.info("Keyword '%s' in %s comment %s from %s", keyword, platform, comment_id, user_name)
+    logger.info("Keyword match in %s comment %s from %s (keywords=%s)", platform, comment_id, user_name, keywords)
 
     code = ''
     error = ''
