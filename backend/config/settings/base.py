@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     # Local
     'apps.content',
     'apps.publishing',
+    'apps.engagement',
 ]
 
 MIDDLEWARE = [
@@ -154,6 +155,12 @@ FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID', '')
 FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')
 FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET', '')
 INSTAGRAM_USER_ID = os.environ.get('INSTAGRAM_USER_ID', '')
+
+# Engagement / Webhook settings
+WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', '')
+ENGAGEMENT_KEYWORD = os.environ.get('ENGAGEMENT_KEYWORD', 'KORTING')
+OPENVOOR_API_URL = os.environ.get('OPENVOOR_API_URL', 'https://open4.app')
+OPENVOOR_DISCOUNT_API_KEY = os.environ.get('OPENVOOR_DISCOUNT_API_KEY', '')
 
 # Full public base URL used to construct media URLs for social APIs
 BASE_URL = os.environ.get('BASE_URL', 'https://social.open4.app')
