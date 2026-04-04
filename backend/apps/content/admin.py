@@ -100,10 +100,25 @@ class SocialPostAdmin(admin.ModelAdmin):
         return extra + urls
 
     def generate_content_view(self, request):
+        from django.utils import timezone
         from apps.content.management.commands.generate_weekly_content import Command
         try:
-            Command().handle(week=None, year=None)
-            self.message_user(request, 'Nieuwe weekbatch gegenereerd.', messages.SUCCESS)
+            # Find the first upcoming week that has no posts yet
+            now = timezone.now()
+            week_number = None
+            year = None
+            for offset in range(1, 8):
+                candidate = now + timezone.timedelta(weeks=offset)
+                iso = candidate.isocalendar()
+                w, y = iso[1], iso[0]
+                if not SocialPost.objects.filter(week_number=w, year=y).exists():
+                    week_number, year = w, y
+                    break
+            if week_number is None:
+                self.message_user(request, 'De komende 7 weken hebben al posts.', messages.WARNING)
+                return HttpResponseRedirect('../')
+            Command().handle(week=week_number, year=year)
+            self.message_user(request, f'Weekbatch week {week_number}/{year} gegenereerd.', messages.SUCCESS)
         except Exception as exc:
             logger.error('Admin generate_content_view failed: %s', exc)
             self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
