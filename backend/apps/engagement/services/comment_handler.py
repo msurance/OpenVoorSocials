@@ -39,26 +39,26 @@ def handle_comment(
         logger.debug("Skipping comment from page itself (comment_id=%s)", comment_id)
         return
 
-    # Skip replies to our own replies (prevents reply loops on comment threads)
-    if parent_id and EngagementReply.objects.filter(comment_id=parent_id).exists():
-        logger.info("Skipping reply to our own comment (parent=%s, comment=%s)", parent_id, comment_id)
-        return
-
     # Skip if already handled
     if EngagementReply.objects.filter(comment_id=comment_id).exists():
         logger.info("Already replied to %s comment %s — skipping", platform, comment_id)
         return
 
+    # If this is a reply to one of our own comments, skip the discount tier
+    # (they already got a code in this thread) but still analyse for AI/natural replies
+    is_reply_to_ours = bool(parent_id and EngagementReply.objects.filter(comment_id=parent_id).exists())
+
     name = _first_name(user_name)
     message_lower = message.lower()
 
-    # --- Priority 1: discount keyword ---
-    kw_str = get_param('engagement.keywords', 'match,openvoor,klaar,korting')
-    discount_keywords = [k.strip().lower() for k in kw_str.split(',') if k.strip()]
-    matched_discount = next((kw for kw in discount_keywords if kw in message_lower), None)
-    if matched_discount:
-        _handle_discount_comment(comment_id, user_id, user_name, post_id, message, platform, name, matched_discount)
-        return
+    # --- Priority 1: discount keyword (only for top-level comments, not replies to us) ---
+    if not is_reply_to_ours:
+        kw_str = get_param('engagement.keywords', 'match,klaar,korting')
+        discount_keywords = [k.strip().lower() for k in kw_str.split(',') if k.strip()]
+        matched_discount = next((kw for kw in discount_keywords if kw in message_lower), None)
+        if matched_discount:
+            _handle_discount_comment(comment_id, user_id, user_name, post_id, message, platform, name, matched_discount)
+            return
 
     # --- Priority 2: AI comment ---
     ai_kw_str = get_param('engagement.ai_keywords', 'ai,robot,nep,chatgpt,gegenereerd')
