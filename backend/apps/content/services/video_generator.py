@@ -27,14 +27,14 @@ def generate_video(post_id: str, image_path_relative: str, category: str, week_n
     if not abs_image_path.exists():
         raise FileNotFoundError(f"Image not found: {abs_image_path}")
 
-    os.environ.setdefault('FAL_KEY', settings.FAL_KEY)
+    os.environ['FAL_KEY'] = settings.FAL_KEY
 
     motion_prompt = _MOTION_PROMPTS.get(category, _DEFAULT_MOTION)
 
-    logger.info("Uploading image to fal.ai for post %s", post_id)
-    image_url = fal_client.upload_file(str(abs_image_path))
+    # Use the public URL directly — avoids fal.ai CDN storage upload permissions
+    image_url = f"{settings.BASE_URL}{settings.MEDIA_URL}{image_path_relative}"
 
-    logger.info("Generating video for post %s (category=%s)", post_id, category)
+    logger.info("Generating video for post %s (category=%s, image=%s)", post_id, category, image_url)
     result = fal_client.run(
         "fal-ai/kling-video/v1.6/standard/image-to-video",
         arguments={
