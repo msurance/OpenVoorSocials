@@ -25,6 +25,11 @@ def handle_comment(
     if not comment_id:
         return
 
+    # Ignore comments made by the page itself to prevent reply loops
+    if str(user_id) == str(settings.FACEBOOK_PAGE_ID):
+        logger.debug("Skipping comment from page itself (comment_id=%s)", comment_id)
+        return
+
     keywords = [k.strip().lower() for k in settings.ENGAGEMENT_KEYWORD.split(',') if k.strip()]
     message_lower = message.lower()
     matched = next((kw for kw in keywords if kw in message_lower), None)
