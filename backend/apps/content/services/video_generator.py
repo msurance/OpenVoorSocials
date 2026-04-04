@@ -15,14 +15,46 @@ _STATIC_BANNER_INSTRUCTION = (
     "throughout the entire video. Do not animate, fade, blur, or distort it."
 )
 
+# Multiple motion styles per category — rotated by post_id hash so the same
+# post always gets the same style, but different posts vary naturally.
 _MOTION_PROMPTS = {
-    'love': f'Soft warm glow, gentle bokeh drift, romantic cinematic stillness with subtle depth of field movement. {_STATIC_BANNER_INSTRUCTION}',
-    'friends': f'Natural warmth, gentle ambient light flicker, subtle background movement, social energy. {_STATIC_BANNER_INSTRUCTION}',
-    'travel': f'Scenic atmosphere, gentle camera drift, cinematic depth, natural light shift. {_STATIC_BANNER_INSTRUCTION}',
-    'sports': f'Dynamic energy, subtle motion blur on edges, athletic atmosphere. {_STATIC_BANNER_INSTRUCTION}',
-    'parents': f'Soft domestic warmth, gentle afternoon light shift, cozy peaceful movement. {_STATIC_BANNER_INSTRUCTION}',
+    'love': [
+        f'Gentle bokeh drift, soft warm light slowly brightening, romantic depth-of-field pulse, stillness with heartbeat energy. {_STATIC_BANNER_INSTRUCTION}',
+        f'Slow cinematic push-in, golden hour glow intensifying, subtle lens flare drift across the frame. {_STATIC_BANNER_INSTRUCTION}',
+        f'Soft parallax between subject and background, warm candlelight flicker, intimate and unhurried. {_STATIC_BANNER_INSTRUCTION}',
+    ],
+    'friends': [
+        f'Light ambient movement in the background, natural laugh-energy ripple, warm social atmosphere. {_STATIC_BANNER_INSTRUCTION}',
+        f'Gentle handheld sway, café background buzz, spontaneous candid energy, bright mid-afternoon light. {_STATIC_BANNER_INSTRUCTION}',
+        f'Subtle zoom-out revealing more of the scene, background crowd softly animating, upbeat warmth. {_STATIC_BANNER_INSTRUCTION}',
+    ],
+    'travel': [
+        f'Slow cinematic pan revealing the landscape, golden light shifting across the scene, sense of arrival. {_STATIC_BANNER_INSTRUCTION}',
+        f'Gentle camera drift forward as if walking into the scene, atmospheric haze, wanderlust energy. {_STATIC_BANNER_INSTRUCTION}',
+        f'Parallax depth pull between foreground and horizon, natural wind movement, epic stillness. {_STATIC_BANNER_INSTRUCTION}',
+    ],
+    'sports': [
+        f'Subtle dynamic energy pulse, motion blur ripple on background, athletic readiness, focused tension. {_STATIC_BANNER_INSTRUCTION}',
+        f'Slow zoom in on the subject, environment softly energising around them, momentum building. {_STATIC_BANNER_INSTRUCTION}',
+        f'Gentle camera tilt with depth shimmer, crisp morning light, outdoor freshness, movement potential. {_STATIC_BANNER_INSTRUCTION}',
+    ],
+    'parents': [
+        f'Soft afternoon light slowly shifting, cozy domestic warmth, quiet tenderness, unhurried pace. {_STATIC_BANNER_INSTRUCTION}',
+        f'Gentle parallax between subject and family-life background details, safe and warm atmosphere. {_STATIC_BANNER_INSTRUCTION}',
+        f'Slow subtle push-in, window light brightening, peaceful kitchen or living room energy. {_STATIC_BANNER_INSTRUCTION}',
+    ],
 }
-_DEFAULT_MOTION = f'Gentle camera movement, soft ambient animation, cinematic warmth. {_STATIC_BANNER_INSTRUCTION}'
+_DEFAULT_PROMPTS = [
+    f'Gentle camera movement, soft ambient animation, cinematic warmth. {_STATIC_BANNER_INSTRUCTION}',
+    f'Slow atmospheric drift, natural light shift, serene and engaging. {_STATIC_BANNER_INSTRUCTION}',
+]
+
+
+def _pick_motion_prompt(category: str, post_id: str) -> str:
+    """Deterministically pick a motion prompt variant based on post_id."""
+    options = _MOTION_PROMPTS.get(category, _DEFAULT_PROMPTS)
+    index = int(post_id.replace('-', '')[:8], 16) % len(options)
+    return options[index]
 
 
 def _fal_headers():
@@ -42,7 +74,7 @@ def generate_video(post_id: str, image_path_relative: str, category: str, week_n
     if not abs_image_path.exists():
         raise FileNotFoundError(f"Image not found: {abs_image_path}")
 
-    motion_prompt = _MOTION_PROMPTS.get(category, _DEFAULT_MOTION)
+    motion_prompt = _pick_motion_prompt(category, post_id)
     image_url = f"{settings.BASE_URL}{settings.MEDIA_URL}{image_path_relative}"
 
     logger.info("Submitting video job for post %s (image=%s)", post_id, image_url)
