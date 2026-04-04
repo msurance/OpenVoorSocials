@@ -19,7 +19,8 @@ COPY backend/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-# App code — only invalidates layers below this line
+# App code — ARG before COPY forces cache bust on every build
+ARG CACHEBUST=1
 COPY backend/ .
 COPY crontab /app/crontab
 COPY logobanners/ /app/logobanners/
