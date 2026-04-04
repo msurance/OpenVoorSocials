@@ -23,7 +23,9 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
-    command: supercronic /app/crontab
+    command: >
+      sh -c "until python -c \"import psycopg2, os; psycopg2.connect(os.environ['DATABASE_URL']); print('DB ready')\" 2>/dev/null; do sleep 2; done &&
+             supercronic /app/crontab"
     env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
