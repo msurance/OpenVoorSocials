@@ -43,8 +43,9 @@ def handle_comment(
     if not comment_id:
         return
 
-    keyword = settings.ENGAGEMENT_KEYWORD.lower()
-    if keyword not in message.lower():
+    keywords = [k.strip().lower() for k in settings.ENGAGEMENT_KEYWORD.split(',') if k.strip()]
+    message_lower = message.lower()
+    if not any(kw in message_lower for kw in keywords):
         return
 
     if EngagementReply.objects.filter(comment_id=comment_id).exists():
