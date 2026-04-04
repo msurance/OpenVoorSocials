@@ -14,33 +14,20 @@ Kernwaarden:
 - 100% GDPR-proof, privacy centraal
 - Belgisch, authentiek, warm"""
 
-_PUBLIC_PROMPT = """Iemand heeft gereageerd op een Facebook-post van OpenVoor.app met het woord "{keyword}" in hun comment.
+_FB_CODE_PROMPT = """Iemand heeft gereageerd op een Facebook-post van OpenVoor.app met het woord "{keyword}" in hun comment.
 
 Naam: {name}
 Hun comment: "{comment}"
+Hun kortingscode: {code}
 
-Schrijf een KORTE publieke reactie (max 2 zinnen) die:
+Schrijf een publieke Facebook-reactie (3-4 zinnen) die:
 - Warm en persoonlijk begint met hun voornaam
-- Zegt dat we ze een privébericht sturen met hun persoonlijke code
-- Geen code vermeldt (die komt privé)
-- Eindigend met één relevante emoji
-
-Geef ENKEL de reactietekst terug, geen uitleg."""
-
-_PRIVATE_PROMPT = """Iemand heeft gereageerd op een Facebook-post van OpenVoor.app en krijgt een gratis kortingscode.
-
-Naam: {name}
-Hun comment: "{comment}"
-Hun code: {code}
-
-Schrijf een PRIVÉ Messenger-bericht (3-5 zinnen) dat:
-- Persoonlijk en warm begint
-- Uitlegt dat ze normaal €5 betalen (om bots buiten te houden) maar nu gratis aansluiten
+- Uitlegt dat OpenVoor normaal €5 instapkost heeft (om bots buiten te houden) maar dat ze met hun code gratis aansluiten
 - De code duidelijk vermeldt: {code}
 - Ze stuurt naar https://openvoor.app om zich aan te melden en de code in te voeren
-- Eindigend met een warme welkomszin
+- Eindigend met een warme emoji
 
-Geef ENKEL de berichttekst terug, geen uitleg."""
+Geef ENKEL de reactietekst terug, geen uitleg."""
 
 _NO_CODES_PROMPT = """Iemand heeft gereageerd op een Facebook-post van OpenVoor.app maar alle kortingscodes zijn op.
 
@@ -115,24 +102,15 @@ def _call_claude(prompt: str, max_tokens: int = 300) -> str:
     return msg.content[0].text.strip()
 
 
-def generate_fb_public_reply(name: str, comment: str, keyword: str) -> str:
+def generate_fb_reply_with_code(name: str, comment: str, code: str, keyword: str) -> str:
     try:
-        return _call_claude(_PUBLIC_PROMPT.format(name=name, comment=comment, keyword=keyword))
+        return _call_claude(_FB_CODE_PROMPT.format(name=name, comment=comment, code=code, keyword=keyword))
     except Exception as exc:
-        logger.error("Claude public reply generation failed: %s", exc)
-        return f"Wat leuk dat je reageert, {name}! \U0001f917 We sturen je zo een privébericht met jouw persoonlijke code. Check je inbox! \U0001f4eb"
-
-
-def generate_fb_private_message(name: str, comment: str, code: str) -> str:
-    try:
-        return _call_claude(_PRIVATE_PROMPT.format(name=name, comment=comment, code=code))
-    except Exception as exc:
-        logger.error("Claude private message generation failed: %s", exc)
+        logger.error("Claude FB reply generation failed: %s", exc)
         return (
-            f"Hey {name}! \U0001f917\n\n"
-            f"Normaal betaal je \u20ac5 om aan te sluiten \u2014 maar met jouw persoonlijke code sluit je gratis aan \U0001f3ab\n\n"
-            f"Jouw code: {code}\n\n"
-            f"Ga naar https://openvoor.app, maak je profiel aan en voer de code in. Echte mensen, echte connecties. Welkom! \u2728"
+            f"Wat leuk {name}! \U0001f917 Normaal betaal je \u20ac5 instapkost (om bots buiten te houden) \u2014 "
+            f"maar met jouw persoonlijke code sluit je gratis aan \U0001f3ab\n\n"
+            f"Jouw code: {code}\n\nGa naar https://openvoor.app en voer je code in bij het aanmelden. Welkom! \u2728"
         )
 
 

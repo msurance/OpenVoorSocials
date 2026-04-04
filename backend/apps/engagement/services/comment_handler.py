@@ -6,8 +6,7 @@ from apps.engagement.models import EngagementReply
 from apps.params.helpers import get_param
 from apps.engagement.services.discount_api import claim_discount_code, NoCodesAvailable
 from apps.engagement.services.reply_generator import (
-    generate_fb_public_reply,
-    generate_fb_private_message,
+    generate_fb_reply_with_code,
     generate_no_codes_reply,
     generate_ig_reply,
     generate_ai_acknowledgment,
@@ -30,6 +29,7 @@ def handle_comment(
     post_id: str,
     message: str,
     platform: str,
+    parent_id: str = '',
 ):
     if not comment_id:
         return
@@ -37,6 +37,11 @@ def handle_comment(
     # Never reply to the page's own comments
     if str(user_id) == str(settings.FACEBOOK_PAGE_ID):
         logger.debug("Skipping comment from page itself (comment_id=%s)", comment_id)
+        return
+
+    # Skip replies to our own replies (prevents reply loops on comment threads)
+    if parent_id and EngagementReply.objects.filter(comment_id=parent_id).exists():
+        logger.info("Skipping reply to our own comment (parent=%s, comment=%s)", parent_id, comment_id)
         return
 
     # Skip if already handled
@@ -176,11 +181,9 @@ def _send_code_reply(platform: str, comment_id: str, name: str, comment_text: st
     proof = _appsecret_proof(token)
 
     if platform == 'facebook':
-        public_text = generate_fb_public_reply(name=name, comment=comment_text, keyword=keyword)
-        _post_fb_comment(comment_id, public_text, token, proof)
-        private_text = generate_fb_private_message(name=name, comment=comment_text, code=code)
-        _post_fb_private_reply(comment_id, private_text, token, proof)
-        return f"[publiek] {public_text}\n\n[privé] {private_text}"
+        text = generate_fb_reply_with_code(name=name, comment=comment_text, code=code, keyword=keyword)
+        _post_fb_comment(comment_id, text, token, proof)
+        return text
     elif platform == 'instagram':
         text = generate_ig_reply(name=name, comment=comment_text, code=code, keyword=keyword)
         _post_ig_reply(comment_id, text, token, proof)
@@ -209,16 +212,6 @@ def _post_fb_comment(comment_id: str, message: str, token: str, proof: str):
         logger.error("FB comment reply error: %s", resp.text)
     resp.raise_for_status()
 
-
-def _post_fb_private_reply(comment_id: str, message: str, token: str, proof: str):
-    resp = requests.post(
-        f"{GRAPH_API_BASE}/{comment_id}/private_replies",
-        data={"message": message, "access_token": token, "appsecret_proof": proof},
-        timeout=15,
-    )
-    if not resp.ok:
-        logger.warning("FB private reply not available for comment %s (status %s): %s", comment_id, resp.status_code, resp.text[:200])
-        return  # non-fatal — public reply already sent
 
 
 def _post_ig_reply(comment_id: str, message: str, token: str, proof: str):

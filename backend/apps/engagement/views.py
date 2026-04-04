@@ -13,25 +13,6 @@ from apps.engagement.services.comment_handler import handle_comment
 logger = logging.getLogger(__name__)
 
 
-@csrf_exempt
-def webhook_test(request):
-    """Temporary debug endpoint — remove after testing."""
-    import traceback
-    try:
-        from apps.engagement.services.comment_handler import handle_comment
-        handle_comment(
-            comment_id='debug_test_001',
-            user_id='debug_user',
-            user_name='Debug User',
-            post_id='debug_post',
-            message='match',
-            platform='facebook',
-        )
-        return JsonResponse({'status': 'ok', 'message': 'handle_comment ran'})
-    except Exception as exc:
-        return JsonResponse({'status': 'error', 'error': str(exc), 'trace': traceback.format_exc()}, status=500)
-
-
 def _verify_signature(body: bytes, signature_header: str) -> bool:
     if not signature_header or not signature_header.startswith('sha256='):
         return False
@@ -82,6 +63,7 @@ def facebook_webhook(request):
                         post_id=value.get('post_id', ''),
                         message=value.get('message', ''),
                         platform='facebook',
+                        parent_id=value.get('parent_id', ''),
                     )
                 elif field == 'comments':
                     handle_comment(
@@ -91,6 +73,7 @@ def facebook_webhook(request):
                         post_id=value.get('media', {}).get('id', ''),
                         message=value.get('text', ''),
                         platform='instagram',
+                        parent_id=value.get('parent_id', ''),
                     )
             except Exception as exc:
                 logger.exception("Unhandled error processing webhook field=%s: %s", field, exc)
