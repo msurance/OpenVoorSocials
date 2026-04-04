@@ -39,8 +39,9 @@ def facebook_webhook(request):
 
     body = request.body
     sig = request.META.get('HTTP_X_HUB_SIGNATURE_256', '')
+    logger.info("Webhook POST received — sig=%s body_len=%d", sig[:30] if sig else 'NONE', len(body))
     if not _verify_signature(body, sig):
-        logger.warning("Facebook webhook signature mismatch")
+        logger.warning("Facebook webhook signature mismatch — sig=%s", sig[:50] if sig else 'NONE')
         return HttpResponse(status=403)
 
     try:
