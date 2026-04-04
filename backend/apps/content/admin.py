@@ -49,6 +49,7 @@ class SocialPostAdmin(admin.ModelAdmin):
     readonly_fields = (
         'id',
         'image_preview',
+        'video_preview',
         'created_at',
         'published_at',
         'facebook_post_id',
@@ -60,7 +61,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             'fields': ('category', 'platform', 'status', 'copy_nl', 'hashtags'),
         }),
         ('Image', {
-            'fields': ('image_prompt', 'image_path', 'image_preview'),
+            'fields': ('image_prompt', 'image_path', 'image_preview', 'video_path', 'video_preview'),
         }),
         ('Scheduling', {
             'fields': ('scheduled_at', 'week_number', 'year'),
@@ -79,7 +80,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images']
+    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images', 'generate_video']
 
     # ------------------------------------------------------------------
     # Display helpers
@@ -110,7 +111,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             return '—'
         return format_html(
             '<img src="{url}" style="max-height:60px;border-radius:4px;" />',
-            url=self._versioned_url(obj),
+            url=self._versioned_url_for(obj.image_url, obj.image_path),
         )
 
     @admin.display(description='Status', ordering='status')
@@ -131,17 +132,29 @@ class SocialPostAdmin(admin.ModelAdmin):
             return '—'
         return format_html(
             '<img src="{url}" style="max-width:400px;border-radius:8px;" />',
-            url=self._versioned_url(obj),
+            url=self._versioned_url_for(obj.image_url, obj.image_path),
+        )
+
+    @admin.display(description='Video')
+    def video_preview(self, obj):
+        if not obj.video_url:
+            return '—'
+        return format_html(
+            '<video src="{url}" style="max-width:400px;border-radius:8px;" controls></video>',
+            url=self._versioned_url_for(obj.video_url, obj.video_path),
         )
 
     def _versioned_url(self, obj):
         """Append file mtime as cache-buster so regenerated images always reload."""
-        url = obj.image_url
-        if obj.image_path:
+        return self._versioned_url_for(obj.image_url, obj.image_path)
+
+    def _versioned_url_for(self, url, path):
+        """Append file mtime as cache-buster for any media file."""
+        if path:
             try:
-                abs_path = Path(settings.MEDIA_ROOT) / obj.image_path
+                abs_path = Path(settings.MEDIA_ROOT) / path
                 mtime = int(os.path.getmtime(abs_path))
-                url = f"{url}?v={mtime}"
+                return f"{url}?v={mtime}"
             except OSError:
                 pass
         return url
@@ -211,6 +224,32 @@ class SocialPostAdmin(admin.ModelAdmin):
 
         if success_count:
             self.message_user(request, f'{success_count} afbeelding(en) opnieuw gegenereerd.', messages.SUCCESS)
+
+    @admin.action(description='Video genereren (Kling AI)')
+    def generate_video(self, request, queryset):
+        from apps.content.services.video_generator import generate_video as gen_video
+
+        success_count = 0
+        fail_count = 0
+
+        for post in queryset:
+            if not post.image_path:
+                self.message_user(request, f'Post {post.id} overgeslagen: geen afbeelding.', messages.WARNING)
+                continue
+            try:
+                relative_path = gen_video(
+                    str(post.id), post.image_path, post.category, post.week_number, post.year
+                )
+                post.video_path = relative_path
+                post.save(update_fields=['video_path'])
+                success_count += 1
+            except Exception as exc:
+                logger.error('Admin generate_video failed for %s: %s', post.id, exc)
+                self.message_user(request, f'Post {post.id} mislukt: {exc}', messages.ERROR)
+                fail_count += 1
+
+        if success_count:
+            self.message_user(request, f'{success_count} video(s) gegenereerd.', messages.SUCCESS)
 
     @admin.action(description='Goedkeuren')
     def approve_posts(self, request, queryset):

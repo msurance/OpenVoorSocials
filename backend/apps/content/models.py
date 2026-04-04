@@ -11,7 +11,6 @@ class SocialPost(models.Model):
         ('travel', 'Reizen'),
         ('sports', 'Sporten'),
         ('parents', 'Ouders'),
-        ('klusjes', 'Klusjes'),
         ('all', 'Alles'),
     ]
     PLATFORM_CHOICES = [
@@ -35,6 +34,7 @@ class SocialPost(models.Model):
     hashtags = models.TextField(blank=True)
     image_prompt = models.TextField()
     image_path = models.CharField(max_length=500, blank=True)
+    video_path = models.CharField(max_length=500, blank=True, default='')
     scheduled_at = models.DateTimeField(db_index=True)
     published_at = models.DateTimeField(null=True, blank=True)
     facebook_post_id = models.CharField(max_length=200, blank=True)
@@ -63,3 +63,9 @@ class SocialPost(models.Model):
         if not self.image_path:
             return None
         return f"{settings.BASE_URL}{settings.MEDIA_URL}{self.image_path}"
+
+    @property
+    def video_url(self):
+        if not self.video_path:
+            return None
+        return f"{settings.BASE_URL}{settings.MEDIA_URL}{self.video_path}"

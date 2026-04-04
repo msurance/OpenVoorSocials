@@ -148,6 +148,7 @@ REST_FRAMEWORK = {
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+FAL_KEY = os.environ.get('FAL_KEY', '')
 
 FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID', '')
 FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')
