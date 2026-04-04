@@ -76,7 +76,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    actions = ['approve_posts', 'reject_posts', 'publish_now']
+    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images']
 
     # ------------------------------------------------------------------
     # Display helpers
@@ -134,6 +134,42 @@ class SocialPostAdmin(admin.ModelAdmin):
     # ------------------------------------------------------------------
     # Admin actions
     # ------------------------------------------------------------------
+
+    @admin.action(description='Afbeelding genereren')
+    def generate_images(self, request, queryset):
+        from pathlib import Path
+        from django.conf import settings
+        from apps.content.services.image_generator import generate_image
+
+        success_count = 0
+        skip_count = 0
+        fail_count = 0
+
+        for post in queryset:
+            if not post.image_prompt:
+                skip_count += 1
+                continue
+            if post.image_path:
+                abs_path = Path(settings.MEDIA_ROOT) / post.image_path
+                if abs_path.exists():
+                    skip_count += 1
+                    continue
+            try:
+                relative_path = generate_image(
+                    str(post.id), post.image_prompt, post.week_number, post.year
+                )
+                post.image_path = relative_path
+                post.save(update_fields=['image_path'])
+                success_count += 1
+            except Exception as exc:
+                logger.error('Admin generate_images failed for %s: %s', post.id, exc)
+                self.message_user(request, f'Post {post.id} mislukt: {exc}', messages.ERROR)
+                fail_count += 1
+
+        if success_count:
+            self.message_user(request, f'{success_count} afbeelding(en) gegenereerd.', messages.SUCCESS)
+        if skip_count:
+            self.message_user(request, f'{skip_count} post(s) overgeslagen (al een afbeelding of geen prompt).', messages.WARNING)
 
     @admin.action(description='Goedkeuren')
     def approve_posts(self, request, queryset):
