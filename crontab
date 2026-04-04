@@ -1,2 +1,2 @@
-0 8 * * 1 cd /app && python manage.py generate_weekly_content >> /proc/1/fd/1 2>&1
-*/30 * * * * cd /app && python manage.py publish_due_posts >> /proc/1/fd/1 2>&1
+0 8 * * 1 cd /app && python manage.py generate_weekly_content 2>&1
+*/30 * * * * cd /app && python manage.py publish_due_posts 2>&1

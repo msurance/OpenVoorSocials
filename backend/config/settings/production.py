@@ -8,6 +8,10 @@ SECRET_KEY = os.environ['SECRET_KEY']
 
 ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS', 'social.open4.app')]
 
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{os.environ.get('ALLOWED_HOSTS', 'social.open4.app')}",
+]
+
 # ---------------------------------------------------------------------------
 # Security hardening
 # ---------------------------------------------------------------------------
