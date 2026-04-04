@@ -22,7 +22,7 @@ COPY backend/ .
 
 # Copy crontab and banner assets from project root
 COPY crontab /app/crontab
-COPY facebook_banners/ /app/facebook_banners/
+COPY logobanners/ /app/logobanners/
 
 RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
 

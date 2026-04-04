@@ -38,7 +38,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Generating images for {len(missing)} posts...')
         for post in missing:
             try:
-                relative_path = generate_image(str(post.id), post.image_prompt, post.week_number, post.year)
+                relative_path = generate_image(str(post.id), post.image_prompt, post.week_number, post.year, post.category)
                 post.image_path = relative_path
                 post.save(update_fields=['image_path'])
                 self.stdout.write(self.style.SUCCESS(f'  [OK] {post}'))

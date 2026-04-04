@@ -156,7 +156,7 @@ class SocialPostAdmin(admin.ModelAdmin):
                     continue
             try:
                 relative_path = generate_image(
-                    str(post.id), post.image_prompt, post.week_number, post.year
+                    str(post.id), post.image_prompt, post.week_number, post.year, post.category
                 )
                 post.image_path = relative_path
                 post.save(update_fields=['image_path'])

@@ -16,21 +16,20 @@ TAGLINES = [
     "AI-matching op volledig geanonimiseerde data — de app leert jou kennen, niet je profiel",
 ]
 
-# 14 posts per week — fixed category mix keeps a balanced content calendar
+# 12 posts per week — balanced across 5 categories (no klusjes)
 CATEGORY_MIX = [
     'love', 'love', 'love', 'love',
     'friends', 'friends',
     'travel', 'travel',
     'sports', 'sports',
     'parents', 'parents',
-    'klusjes', 'klusjes',
 ]
 
 # Two optimal publishing slots for the Belgian 30+ audience
 POST_TIMES = ['10:00', '19:00']
 
 SYSTEM_PROMPT = """Je bent een sociale media expert voor OpenVoor.app, een AI-matchmaking platform voor Belgen van 30+.
-OpenVoor.app helpt mensen die moeite hebben om nieuwe verbindingen te vinden — voor liefde, vriendschap, sport, reizen, ouderschap en klusjes.
+OpenVoor.app helpt mensen die moeite hebben om nieuwe verbindingen te vinden — voor liefde, vriendschap, sport, reizen en ouderschap.
 
 Schrijf authentieke, warme en herkenbare Nederlandse posts voor Facebook en Instagram.
 Doelgroep: Belgen van 30+, mensen die zich soms alleen voelen en op zoek zijn naar echte verbinding.
@@ -76,13 +75,13 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     jan4 = datetime(year, 1, 4)
     week_start = jan4 + timedelta(weeks=week_number - 1, days=-jan4.weekday())
 
-    schedule = _build_schedule(week_start)
-    categories = CATEGORY_MIX[: len(schedule)]
+    schedule = _build_schedule(week_start)[:len(CATEGORY_MIX)]
+    categories = CATEGORY_MIX
 
     # Assign one rotating tagline per post
     tagged = [
         (categories[i], TAGLINES[i % len(TAGLINES)])
-        for i in range(len(schedule))
+        for i in range(len(categories))
     ]
     post_specs = "\n".join(
         f"{i+1}. categorie: {cat} | tagline om te verwerken: \"{tag}\""
@@ -90,12 +89,12 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     )
 
     user_prompt = (
-        f"Genereer {len(schedule)} sociale media posts voor de week van "
+        f"Genereer {len(categories)} sociale media posts voor de week van "
         f"{week_start.strftime('%d %B %Y')}.\n\n"
         f"Post-specificaties (categorie + tagline per post):\n{post_specs}\n\n"
-        f"Geef je antwoord als een JSON-array met exact {len(schedule)} objecten, "
+        f"Geef je antwoord als een JSON-array met exact {len(categories)} objecten, "
         f"elk met deze velden:\n"
-        '- "category": één van: love, friends, travel, sports, parents, klusjes\n'
+        '- "category": één van: love, friends, travel, sports, parents\n'
         '- "copy_nl": de volledige post tekst in het Nederlands (inclusief eventuele emojis) — '
         'verwerk de toegewezen tagline organisch in de tekst\n'
         '- "hashtags": string met hashtags, gescheiden door spaties (3-7 hashtags, mix NL/BE)\n'
@@ -104,7 +103,7 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
         'Geef ALLEEN de JSON array terug, geen andere tekst.'
     )
 
-    logger.info("Generating %d posts for week %d/%d", len(schedule), week_number, year)
+    logger.info("Generating %d posts for week %d/%d", len(categories), week_number, year)
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -127,7 +126,7 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     posts_data = json.loads(raw)
 
     result = []
-    for i, post in enumerate(posts_data[: len(schedule)]):
+    for i, post in enumerate(posts_data[:len(categories)]):
         result.append({
             **post,
             'scheduled_at': schedule[i],
@@ -136,4 +135,5 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
         })
 
     logger.info("Generated %d posts successfully for week %d/%d", len(result), week_number, year)
+
     return result
