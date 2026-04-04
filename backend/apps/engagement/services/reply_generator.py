@@ -5,11 +5,11 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 _SYSTEM = """Je bent de sociale media assistent van OpenVoor.app — een Belgisch AI-matchmaking platform voor 30-plussers.
-OpenVoor is warm, eerlijk en menselijk. Geen bots, geen nep. De toon is vriendelijk, enthousiast maar nooit overdreven.
+OpenVoor is warm, eerlijk en menselijk. De toon is vriendelijk, enthousiast maar nooit overdreven.
 
-Kernwaarden om te verwerken in je antwoorden:
-- 100% echte mensen
-- €5 instapkost om bots buiten te houden (maar de gebruiker krijgt nu een gratis code)
+Kernwaarden:
+- 100% echte mensen, echte connecties
+- €5 instapkost om bots buiten te houden
 - AI-matching op basis van wie je écht bent, niet op foto's swipen
 - 100% GDPR-proof, privacy centraal
 - Belgisch, authentiek, warm"""
@@ -36,7 +36,7 @@ Hun code: {code}
 Schrijf een PRIVÉ Messenger-bericht (3-5 zinnen) dat:
 - Persoonlijk en warm begint
 - Uitlegt dat ze normaal €5 betalen (om bots buiten te houden) maar nu gratis aansluiten
-- De code duidelijk vermeld: {code}
+- De code duidelijk vermeldt: {code}
 - Ze stuurt naar https://openvoor.app om zich aan te melden en de code in te voeren
 - Eindigend met een warme welkomszin
 
@@ -69,12 +69,46 @@ Schrijf een KORTE Instagram-reactie (max 2 zinnen) die:
 
 Geef ENKEL de reactietekst terug, geen uitleg."""
 
+_AI_PROMPT = """Iemand reageert op een post van OpenVoor.app en suggereert of vraagt of de content AI-gegenereerd is.
 
-def _call_claude(prompt: str) -> str:
+Naam: {name}
+Hun comment: "{comment}"
+
+OpenVoor.app is een community-project van één persoon, gebouwd voor Belgische 30-plussers die écht contact willen.
+De content (teksten, afbeeldingen, video's) wordt inderdaad ondersteund door AI — dat is bewust zo gekozen om het project
+levensvatbaar te houden als soloproject. De matching-technologie is ook AI-gedreven, maar op volledig geanonimiseerde data.
+De mensen op het platform zijn 100% echt.
+
+Schrijf een KORTE, eerlijke en zelfverzekerde reactie (2-3 zinnen) die:
+- De AI-ondersteuning bevestigt zonder zich te verontschuldigen
+- Uitlegt waarom: community-project, beperkte tijd, AI maakt het haalbaar
+- Benadrukt dat de MENSEN op het platform 100% echt zijn
+- Warm en licht humoristisch mag zijn
+- Eindigend met één emoji
+
+Geef ENKEL de reactietekst terug, geen uitleg."""
+
+_NATURAL_PROMPT = """Iemand heeft een comment geplaatst op een post van OpenVoor.app.
+
+Naam: {name}
+Hun comment: "{comment}"
+Post context: {post_context}
+
+Schrijf een KORTE, natuurlijke reactie (1-2 zinnen) die:
+- Echt en menselijk aanvoelt, niet als een bot
+- Inspeelt op wat ze zeggen (stel een vraag, beaam iets, deel empathie)
+- Subtiel verbonden is met het thema van OpenVoor (echte connecties, 30+, Belgisch)
+- NIET verkoopachtig of promotioneel is
+- Eindigend met maximaal één emoji (soms geen)
+
+Geef ENKEL de reactietekst terug, geen uitleg."""
+
+
+def _call_claude(prompt: str, max_tokens: int = 300) -> str:
     client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=300,
+        max_tokens=max_tokens,
         system=_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -121,3 +155,22 @@ def generate_ig_reply(name: str, comment: str, code: str, keyword: str) -> str:
             f"Wat leuk {name}! \U0001f917 Jouw code: {code} \u2014 "
             f"maak je profiel aan op https://openvoor.app. Welkom! \u2728"
         )
+
+
+def generate_ai_acknowledgment(name: str, comment: str) -> str:
+    try:
+        return _call_claude(_AI_PROMPT.format(name=name, comment=comment))
+    except Exception as exc:
+        logger.error("Claude AI acknowledgment generation failed: %s", exc)
+        return (
+            f"Klopt, {name}! \U0001f916 De content wordt ondersteund door AI \u2014 als soloproject is dat de enige manier om dit haalbaar te houden. "
+            f"De mensen op het platform zijn wel 100% echt. Eerlijk is eerlijk! \U0001f609"
+        )
+
+
+def generate_natural_reply(name: str, comment: str, post_context: str = '') -> str:
+    try:
+        return _call_claude(_NATURAL_PROMPT.format(name=name, comment=comment, post_context=post_context or 'een post over echte connecties maken'), max_tokens=150)
+    except Exception as exc:
+        logger.error("Claude natural reply generation failed: %s", exc)
+        return ''

@@ -1,4 +1,5 @@
 import logging
+import random
 import requests
 from django.conf import settings
 from apps.engagement.models import EngagementReply
@@ -8,10 +9,17 @@ from apps.engagement.services.reply_generator import (
     generate_fb_private_message,
     generate_no_codes_reply,
     generate_ig_reply,
+    generate_ai_acknowledgment,
+    generate_natural_reply,
 )
 from apps.publishing.services.facebook_publisher import _get_page_token, _appsecret_proof, GRAPH_API_BASE
 
 logger = logging.getLogger(__name__)
+
+# Reply types stored in EngagementReply.error field for auditing
+_TYPE_DISCOUNT = 'discount'
+_TYPE_AI = 'ai_acknowledgment'
+_TYPE_NATURAL = 'natural'
 
 
 def handle_comment(
@@ -25,43 +33,51 @@ def handle_comment(
     if not comment_id:
         return
 
-    # Ignore comments made by the page itself to prevent reply loops
+    # Never reply to the page's own comments
     if str(user_id) == str(settings.FACEBOOK_PAGE_ID):
         logger.debug("Skipping comment from page itself (comment_id=%s)", comment_id)
         return
 
-    keywords = [k.strip().lower() for k in settings.ENGAGEMENT_KEYWORD.split(',') if k.strip()]
-    message_lower = message.lower()
-    matched = next((kw for kw in keywords if kw in message_lower), None)
-    if not matched:
-        return
-
+    # Skip if already handled
     if EngagementReply.objects.filter(comment_id=comment_id).exists():
         logger.info("Already replied to %s comment %s — skipping", platform, comment_id)
         return
 
-    logger.info("Keyword '%s' matched in %s comment %s from %s", matched, platform, comment_id, user_name)
-
     name = _first_name(user_name)
+    message_lower = message.lower()
+
+    # --- Priority 1: discount keyword ---
+    discount_keywords = [k.strip().lower() for k in settings.ENGAGEMENT_KEYWORD.split(',') if k.strip()]
+    matched_discount = next((kw for kw in discount_keywords if kw in message_lower), None)
+    if matched_discount:
+        _handle_discount_comment(comment_id, user_id, user_name, post_id, message, platform, name, matched_discount)
+        return
+
+    # --- Priority 2: AI comment ---
+    ai_keywords = [k.strip().lower() for k in settings.ENGAGEMENT_AI_KEYWORDS.split(',') if k.strip()]
+    if any(kw in message_lower for kw in ai_keywords):
+        _handle_ai_comment(comment_id, user_id, user_name, post_id, message, platform, name)
+        return
+
+    # --- Priority 3: natural engagement (probabilistic) ---
+    rate = getattr(settings, 'ENGAGEMENT_NATURAL_REPLY_RATE', 25)
+    if random.randint(1, 100) <= rate:
+        _handle_natural_comment(comment_id, user_id, user_name, post_id, message, platform, name)
+
+
+def _handle_discount_comment(comment_id, user_id, user_name, post_id, message, platform, name, keyword):
+    logger.info("Discount keyword '%s' in %s comment %s from %s", keyword, platform, comment_id, user_name)
     code = ''
     error = ''
     success = False
 
     try:
         code = claim_discount_code(platform=platform, user_id=user_id, comment_id=comment_id)
-        _send_code_reply(
-            platform=platform,
-            comment_id=comment_id,
-            name=name,
-            comment_text=message,
-            code=code,
-            keyword=matched,
-        )
+        _send_code_reply(platform=platform, comment_id=comment_id, name=name, comment_text=message, code=code, keyword=keyword)
         success = True
-        logger.info("Replied to %s comment %s with code %s", platform, comment_id, code)
+        logger.info("Discount reply sent for %s comment %s with code %s", platform, comment_id, code)
     except NoCodesAvailable:
         error = 'no_codes_available'
-        logger.warning("No codes available — sending sorry reply to %s comment %s", platform, comment_id)
         try:
             _send_no_codes_reply(platform=platform, comment_id=comment_id, name=name, comment_text=message)
             success = True
@@ -70,17 +86,75 @@ def handle_comment(
             logger.error("Failed to send no-codes reply for comment %s: %s", comment_id, exc)
     except Exception as exc:
         error = str(exc)
-        logger.error("Failed to handle comment %s: %s", comment_id, exc)
+        logger.error("Failed to handle discount comment %s: %s", comment_id, exc)
 
     EngagementReply.objects.create(
-        comment_id=comment_id,
-        platform=platform,
-        user_id=user_id or '',
-        user_name=user_name or '',
-        post_id=post_id or '',
-        discount_code=code,
-        success=success,
-        error=error,
+        comment_id=comment_id, platform=platform,
+        user_id=user_id or '', user_name=user_name or '',
+        post_id=post_id or '', discount_code=code,
+        success=success, error=error or _TYPE_DISCOUNT,
+    )
+
+
+def _handle_ai_comment(comment_id, user_id, user_name, post_id, message, platform, name):
+    logger.info("AI comment detected in %s comment %s from %s", platform, comment_id, user_name)
+    success = False
+    error = _TYPE_AI
+
+    try:
+        token = _get_page_token()
+        proof = _appsecret_proof(token)
+        text = generate_ai_acknowledgment(name=name, comment=message)
+
+        if platform == 'facebook':
+            _post_fb_comment(comment_id, text, token, proof)
+        elif platform == 'instagram':
+            _post_ig_reply(comment_id, text, token, proof)
+
+        success = True
+        logger.info("AI acknowledgment sent for %s comment %s", platform, comment_id)
+    except Exception as exc:
+        error = f"{_TYPE_AI}: {exc}"
+        logger.error("Failed to send AI acknowledgment for comment %s: %s", comment_id, exc)
+
+    EngagementReply.objects.create(
+        comment_id=comment_id, platform=platform,
+        user_id=user_id or '', user_name=user_name or '',
+        post_id=post_id or '', discount_code='',
+        success=success, error=error,
+    )
+
+
+def _handle_natural_comment(comment_id, user_id, user_name, post_id, message, platform, name):
+    logger.info("Natural engagement for %s comment %s from %s", platform, comment_id, user_name)
+    success = False
+    error = _TYPE_NATURAL
+
+    try:
+        text = generate_natural_reply(name=name, comment=message)
+        if not text:
+            logger.info("Claude returned empty natural reply — skipping")
+            return
+
+        token = _get_page_token()
+        proof = _appsecret_proof(token)
+
+        if platform == 'facebook':
+            _post_fb_comment(comment_id, text, token, proof)
+        elif platform == 'instagram':
+            _post_ig_reply(comment_id, text, token, proof)
+
+        success = True
+        logger.info("Natural reply sent for %s comment %s", platform, comment_id)
+    except Exception as exc:
+        error = f"{_TYPE_NATURAL}: {exc}"
+        logger.error("Failed to send natural reply for comment %s: %s", comment_id, exc)
+
+    EngagementReply.objects.create(
+        comment_id=comment_id, platform=platform,
+        user_id=user_id or '', user_name=user_name or '',
+        post_id=post_id or '', discount_code='',
+        success=success, error=error,
     )
 
 
@@ -106,7 +180,6 @@ def _send_no_codes_reply(platform: str, comment_id: str, name: str, comment_text
     token = _get_page_token()
     proof = _appsecret_proof(token)
     text = generate_no_codes_reply(name=name, comment=comment_text, platform=platform)
-
     if platform == 'facebook':
         _post_fb_comment(comment_id, text, token, proof)
     elif platform == 'instagram':

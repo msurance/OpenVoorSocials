@@ -158,8 +158,10 @@ INSTAGRAM_USER_ID = os.environ.get('INSTAGRAM_USER_ID', '')
 
 # Engagement / Webhook settings
 WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', '')
-ENGAGEMENT_KEYWORD = os.environ.get('ENGAGEMENT_KEYWORD', 'KORTING')
-OPENVOOR_API_URL = os.environ.get('OPENVOOR_API_URL', 'https://open4.app')
+ENGAGEMENT_KEYWORD = os.environ.get('ENGAGEMENT_KEYWORD', 'match,openvoor,klaar,korting')
+ENGAGEMENT_AI_KEYWORDS = os.environ.get('ENGAGEMENT_AI_KEYWORDS', 'ai,artificial,chatgpt,robot,nep,fake,gegenereerd,bot,chatbot,automatisch,generated')
+ENGAGEMENT_NATURAL_REPLY_RATE = int(os.environ.get('ENGAGEMENT_NATURAL_REPLY_RATE', '25'))
+OPENVOOR_API_URL = os.environ.get('OPENVOOR_API_URL', 'https://openvoor.app')
 OPENVOOR_DISCOUNT_API_KEY = os.environ.get('OPENVOOR_DISCOUNT_API_KEY', '')
 
 # Full public base URL used to construct media URLs for social APIs
