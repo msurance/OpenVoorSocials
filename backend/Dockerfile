@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc curl \
+    libpq-dev gcc curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install supercronic (static binary) — cached layer, only re-runs if this line changes

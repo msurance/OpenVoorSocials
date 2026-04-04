@@ -65,6 +65,7 @@ class Command(BaseCommand):
                 scheduled_at=data['scheduled_at'],
                 week_number=week_number,
                 year=year,
+                discount_cta=data.get('discount_cta', False),
             )
             created.append(post)
             self.stdout.write(f"  Created: {post}")

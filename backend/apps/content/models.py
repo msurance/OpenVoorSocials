@@ -35,6 +35,7 @@ class SocialPost(models.Model):
     image_prompt = models.TextField()
     image_path = models.CharField(max_length=500, blank=True)
     video_path = models.CharField(max_length=500, blank=True, default='')
+    discount_cta = models.BooleanField(default=False, db_index=True)
     scheduled_at = models.DateTimeField(db_index=True)
     published_at = models.DateTimeField(null=True, blank=True)
     facebook_post_id = models.CharField(max_length=200, blank=True)

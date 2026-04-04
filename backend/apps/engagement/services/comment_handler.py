@@ -3,6 +3,7 @@ import random
 import requests
 from django.conf import settings
 from apps.engagement.models import EngagementReply
+from apps.params.helpers import get_param
 from apps.engagement.services.discount_api import claim_discount_code, NoCodesAvailable
 from apps.engagement.services.reply_generator import (
     generate_fb_public_reply,
@@ -47,20 +48,22 @@ def handle_comment(
     message_lower = message.lower()
 
     # --- Priority 1: discount keyword ---
-    discount_keywords = [k.strip().lower() for k in settings.ENGAGEMENT_KEYWORD.split(',') if k.strip()]
+    kw_str = get_param('engagement.keywords', 'match,openvoor,klaar,korting')
+    discount_keywords = [k.strip().lower() for k in kw_str.split(',') if k.strip()]
     matched_discount = next((kw for kw in discount_keywords if kw in message_lower), None)
     if matched_discount:
         _handle_discount_comment(comment_id, user_id, user_name, post_id, message, platform, name, matched_discount)
         return
 
     # --- Priority 2: AI comment ---
-    ai_keywords = [k.strip().lower() for k in settings.ENGAGEMENT_AI_KEYWORDS.split(',') if k.strip()]
+    ai_kw_str = get_param('engagement.ai_keywords', 'ai,robot,nep,chatgpt,gegenereerd')
+    ai_keywords = [k.strip().lower() for k in ai_kw_str.split(',') if k.strip()]
     if any(kw in message_lower for kw in ai_keywords):
         _handle_ai_comment(comment_id, user_id, user_name, post_id, message, platform, name)
         return
 
     # --- Priority 3: natural engagement (probabilistic) ---
-    rate = getattr(settings, 'ENGAGEMENT_NATURAL_REPLY_RATE', 25)
+    rate = get_param('engagement.natural_reply_rate', 25)
     if random.randint(1, 100) <= rate:
         _handle_natural_comment(comment_id, user_id, user_name, post_id, message, platform, name)
 
@@ -214,8 +217,8 @@ def _post_fb_private_reply(comment_id: str, message: str, token: str, proof: str
         timeout=15,
     )
     if not resp.ok:
-        logger.error("FB private reply error: %s", resp.text)
-    resp.raise_for_status()
+        logger.warning("FB private reply not available for comment %s (status %s): %s", comment_id, resp.status_code, resp.text[:200])
+        return  # non-fatal — public reply already sent
 
 
 def _post_ig_reply(comment_id: str, message: str, token: str, proof: str):

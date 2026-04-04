@@ -21,7 +21,14 @@ INSTALLED_APPS = [
     'apps.content',
     'apps.publishing',
     'apps.engagement',
+    'apps.params',
 ]
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -161,6 +168,7 @@ WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', '')
 ENGAGEMENT_KEYWORD = os.environ.get('ENGAGEMENT_KEYWORD', 'match,openvoor,klaar,korting')
 ENGAGEMENT_AI_KEYWORDS = os.environ.get('ENGAGEMENT_AI_KEYWORDS', 'ai,artificial,chatgpt,robot,nep,fake,gegenereerd,bot,chatbot,automatisch,generated')
 ENGAGEMENT_NATURAL_REPLY_RATE = int(os.environ.get('ENGAGEMENT_NATURAL_REPLY_RATE', '25'))
+DISCOUNT_CTA_POSTS_PER_WEEK = int(os.environ.get('DISCOUNT_CTA_POSTS_PER_WEEK', '3'))
 OPENVOOR_API_URL = os.environ.get('OPENVOOR_API_URL', 'https://openvoor.app')
 OPENVOOR_DISCOUNT_API_KEY = os.environ.get('OPENVOOR_DISCOUNT_API_KEY', '')
 

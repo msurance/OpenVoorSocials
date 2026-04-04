@@ -41,9 +41,10 @@ class SocialPostAdmin(admin.ModelAdmin):
         'image_thumbnail',
         'scheduled_at',
         'status_badge',
+        'cta_badge',
         'publish_status',
     )
-    list_filter = ('status', 'category', 'platform', 'week_number')
+    list_filter = ('status', 'category', 'platform', 'week_number', 'discount_cta')
     search_fields = ('copy_nl', 'hashtags')
     ordering = ('scheduled_at',)
     readonly_fields = (
@@ -61,7 +62,7 @@ class SocialPostAdmin(admin.ModelAdmin):
     )
     fieldsets = (
         ('Content', {
-            'fields': ('category', 'platform', 'status', 'copy_nl', 'hashtags'),
+            'fields': ('category', 'platform', 'status', 'copy_nl', 'hashtags', 'discount_cta'),
         }),
         ('Image', {
             'fields': ('image_prompt', 'image_path', 'image_preview', 'video_path', 'video_preview'),
@@ -131,6 +132,15 @@ class SocialPostAdmin(admin.ModelAdmin):
             colour=colour,
             label=obj.get_status_display(),
         )
+
+    @admin.display(description='CTA')
+    def cta_badge(self, obj):
+        if obj.discount_cta:
+            return format_html(
+                '<span style="background:#198754;color:#fff;padding:2px 6px;'
+                'border-radius:4px;font-size:0.8em;font-weight:600">CTA</span>'
+            )
+        return '—'
 
     @admin.display(description='Afbeelding (groot)')
     def image_preview(self, obj):

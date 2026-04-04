@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 from datetime import datetime, timedelta
 
 import anthropic
@@ -132,10 +133,30 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
 
     posts_data = json.loads(raw)
 
+    # Pick N posts to receive a discount CTA
+    from apps.content.services.cta_generator import generate_cta
+    from apps.params.helpers import get_param
+    n_cta = get_param('engagement.discount_cta_per_week', 3)
+    cta_indices = set(random.sample(range(len(posts_data)), min(n_cta, len(posts_data))))
+
+    # Pick one of the engagement keywords to use as the CTA keyword
+    kw_str = get_param('engagement.keywords', 'match,openvoor,klaar,korting')
+    keywords = [k.strip() for k in kw_str.split(',') if k.strip()]
+
     result = []
     for i, post in enumerate(posts_data[:len(categories)]):
+        has_cta = i in cta_indices
+        copy_nl = post['copy_nl']
+        if has_cta:
+            # Rotate through keywords deterministically by index
+            keyword = keywords[i % len(keywords)].upper()
+            cta = generate_cta(category=post['category'], copy_nl=copy_nl, keyword=keyword)
+            copy_nl = f"{copy_nl}\n\n{cta}"
+            logger.info("CTA added to post %d (category=%s, keyword=%s)", i + 1, post['category'], keyword)
         result.append({
             **post,
+            'copy_nl': copy_nl,
+            'discount_cta': has_cta,
             'scheduled_at': schedule[i],
             'week_number': week_number,
             'year': year,
