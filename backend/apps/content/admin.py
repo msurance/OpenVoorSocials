@@ -4,6 +4,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
+from django.urls import path
 from django.utils.html import format_html
 
 from apps.content.models import SocialPost
@@ -88,6 +90,24 @@ class SocialPostAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images', 'generate_video']
+    change_list_template = 'admin/content/socialpost/change_list.html'
+
+    def get_urls(self):
+        urls = super().get_urls()
+        extra = [
+            path('generate-content/', self.admin_site.admin_view(self.generate_content_view), name='content_socialpost_generate'),
+        ]
+        return extra + urls
+
+    def generate_content_view(self, request):
+        from apps.content.management.commands.generate_weekly_content import Command
+        try:
+            Command().handle()
+            self.message_user(request, 'Nieuwe weekbatch gegenereerd.', messages.SUCCESS)
+        except Exception as exc:
+            logger.error('Admin generate_content_view failed: %s', exc)
+            self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
+        return HttpResponseRedirect('../')
 
     # ------------------------------------------------------------------
     # Display helpers

@@ -1,0 +1,9 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+  <li>
+    <a href="generate-content/" class="button" style="background:#0d6efd;color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-weight:600;">
+      + Genereer nieuwe weekbatch
+    </a>
+  </li>
+  {{ block.super }}
+{% endblock %}
