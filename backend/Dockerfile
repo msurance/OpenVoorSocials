@@ -9,18 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev gcc curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install supercronic (static binary)
+# Install supercronic (static binary) — cached layer, only re-runs if this line changes
 RUN curl -fsSL https://github.com/aptible/supercronic/releases/download/v0.2.33/supercronic-linux-amd64 \
     -o /usr/local/bin/supercronic \
     && chmod +x /usr/local/bin/supercronic
 
+# requirements first — this layer is cached until requirements.txt changes
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
-# Copy app code (build context = project root)
+# App code — only invalidates layers below this line
 COPY backend/ .
-
-# Copy crontab and banner assets from project root
 COPY crontab /app/crontab
 COPY logobanners/ /app/logobanners/
 

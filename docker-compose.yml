@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    image: openvoorsocials:latest
     restart: unless-stopped
     command: >
       sh -c "echo 'Waiting for DB...' &&
@@ -20,9 +21,7 @@ services:
       - "5005:8000"
 
   cron:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: openvoorsocials:latest
     restart: unless-stopped
     command: >
       sh -c "until python -c \"import psycopg2, os; psycopg2.connect(os.environ['DATABASE_URL']); print('DB ready')\" 2>/dev/null; do sleep 2; done &&
