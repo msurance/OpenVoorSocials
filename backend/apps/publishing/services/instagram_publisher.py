@@ -4,7 +4,7 @@ import logging
 
 import requests
 from django.conf import settings
-from apps.publishing.services.facebook_publisher import _get_page_token, _appsecret_proof
+from apps.publishing.services.facebook_publisher import _get_page_token, _appsecret_proof, SITE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def publish_to_instagram(post) -> str:
     if not post.image_url:
         raise ValueError(f"Post {post.id} has no image — Instagram requires an image.")
 
-    caption = f"{post.copy_nl}\n\n{post.hashtags}".strip()
+    caption = f"{post.copy_nl}\n\n{post.hashtags}\n\nLink in bio: {SITE_URL}".strip()
     token = _get_page_token()
     proof = _appsecret_proof(token)
     ig_user_id = settings.INSTAGRAM_USER_ID
