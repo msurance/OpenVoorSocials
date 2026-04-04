@@ -102,7 +102,7 @@ class SocialPostAdmin(admin.ModelAdmin):
     def generate_content_view(self, request):
         from apps.content.management.commands.generate_weekly_content import Command
         try:
-            Command().handle()
+            Command().handle(week=None, year=None)
             self.message_user(request, 'Nieuwe weekbatch gegenereerd.', messages.SUCCESS)
         except Exception as exc:
             logger.error('Admin generate_content_view failed: %s', exc)
