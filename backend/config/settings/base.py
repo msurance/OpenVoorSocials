@@ -152,6 +152,7 @@ FAL_KEY = os.environ.get('FAL_KEY', '')
 
 FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID', '')
 FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')
+FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET', '')
 INSTAGRAM_USER_ID = os.environ.get('INSTAGRAM_USER_ID', '')
 
 # Full public base URL used to construct media URLs for social APIs
