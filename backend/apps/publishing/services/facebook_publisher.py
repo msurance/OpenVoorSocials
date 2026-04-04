@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import logging
+import time
 
 import requests
 from django.conf import settings
@@ -96,5 +97,71 @@ def publish_to_facebook(post) -> str:
         feed_resp.raise_for_status()
         post_id = feed_resp.json()["id"]
 
-    logger.info("Facebook publish succeeded for post %s → fb_id=%s", post.id, post_id)
+    logger.info("Facebook image/feed published for post %s → fb_id=%s", post.id, post_id)
+
+    # Also publish as Reel if video exists
+    if post.video_path and post.video_url:
+        try:
+            _publish_fb_reel(token, proof, page_id, post)
+        except Exception as exc:
+            logger.error("Facebook Reel failed for post %s (feed post still published): %s", post.id, exc)
+
     return post_id
+
+
+def _publish_fb_reel(token, proof, page_id, post):
+    """Upload and publish video as a Facebook Reel."""
+    message = f"{post.copy_nl}\n\n{post.hashtags}\n\n{SITE_URL}".strip()
+
+    logger.info("Publishing Facebook Reel for post %s", post.id)
+
+    # Step 1: Initialize upload session
+    init_resp = requests.post(
+        f"{GRAPH_API_BASE}/{page_id}/video_reels",
+        data={
+            "upload_phase": "start",
+            "access_token": token,
+            "appsecret_proof": proof,
+        },
+        timeout=30,
+    )
+    if not init_resp.ok:
+        logger.error("FB Reel init error: %s", init_resp.text)
+        init_resp.raise_for_status()
+    video_id = init_resp.json()["video_id"]
+    upload_url = init_resp.json()["upload_url"]
+
+    # Step 2: Upload video bytes
+    video_bytes = requests.get(post.video_url, timeout=60).content
+    upload_resp = requests.post(
+        upload_url,
+        headers={
+            "Authorization": f"OAuth {token}",
+            "offset": "0",
+            "file_size": str(len(video_bytes)),
+        },
+        data=video_bytes,
+        timeout=120,
+    )
+    if not upload_resp.ok:
+        logger.error("FB Reel upload error: %s", upload_resp.text)
+        upload_resp.raise_for_status()
+
+    # Step 3: Finish and publish
+    finish_resp = requests.post(
+        f"{GRAPH_API_BASE}/{page_id}/video_reels",
+        data={
+            "upload_phase": "finish",
+            "video_id": video_id,
+            "video_state": "PUBLISHED",
+            "description": message,
+            "access_token": token,
+            "appsecret_proof": proof,
+        },
+        timeout=30,
+    )
+    if not finish_resp.ok:
+        logger.error("FB Reel finish error: %s", finish_resp.text)
+        finish_resp.raise_for_status()
+
+    logger.info("Facebook Reel published for post %s → video_id=%s", post.id, video_id)
