@@ -20,8 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app code (build context = project root)
 COPY backend/ .
 
-# Copy crontab from project root
+# Copy crontab and banner assets from project root
 COPY crontab /app/crontab
+COPY facebook_banners/ /app/facebook_banners/
 
 RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
 
