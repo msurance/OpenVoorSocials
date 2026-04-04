@@ -7,6 +7,15 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# Rotating USP taglines — one woven organically into each post
+TAGLINES = [
+    "100% echte mensen — geen bots, geen nep",
+    "Slechts 5 euro — precies om robots buiten te houden",
+    "Geen foto's swipen, geen eindeloos zoeken — jij krijgt matches op basis van wie je écht bent",
+    "100% GDPR-proof — jouw privacy staat centraal",
+    "AI-matching op volledig geanonimiseerde data — de app leert jou kennen, niet je profiel",
+]
+
 # 14 posts per week — fixed category mix keeps a balanced content calendar
 CATEGORY_MIX = [
     'love', 'love', 'love', 'love',
@@ -30,9 +39,10 @@ NIET: geen technologisch jargon, geen "algoritme"-taal, geen generieke dating-ap
 
 Elke post moet:
 1. Beginnen met een herkenbare situatie of vraag (geen app-reclame als opener)
-2. Eindigen met een zachte call-to-action richting OpenVoor.app
-3. 3-7 relevante Belgische/Nederlandse hashtags bevatten
-4. Een concrete, levendige beschrijving bevatten voor een lifestyle foto (image_prompt)
+2. Het opgegeven OpenVoor-kenmerk (tagline) organisch verwerken in de post — niet als los zinnetje eraan plakken, maar als iets dat vanzelfsprekend past in de context
+3. Eindigen met een zachte call-to-action richting OpenVoor.app
+4. 3-7 relevante Belgische/Nederlandse hashtags bevatten
+5. Een concrete, levendige beschrijving bevatten voor een lifestyle foto (image_prompt)
 """
 
 
@@ -69,14 +79,25 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     schedule = _build_schedule(week_start)
     categories = CATEGORY_MIX[: len(schedule)]
 
+    # Assign one rotating tagline per post
+    tagged = [
+        (categories[i], TAGLINES[i % len(TAGLINES)])
+        for i in range(len(schedule))
+    ]
+    post_specs = "\n".join(
+        f"{i+1}. categorie: {cat} | tagline om te verwerken: \"{tag}\""
+        for i, (cat, tag) in enumerate(tagged)
+    )
+
     user_prompt = (
         f"Genereer {len(schedule)} sociale media posts voor de week van "
         f"{week_start.strftime('%d %B %Y')}.\n\n"
-        f"Gebruik deze categorie-volgorde: {categories}\n\n"
+        f"Post-specificaties (categorie + tagline per post):\n{post_specs}\n\n"
         f"Geef je antwoord als een JSON-array met exact {len(schedule)} objecten, "
         f"elk met deze velden:\n"
         '- "category": één van: love, friends, travel, sports, parents, klusjes\n'
-        '- "copy_nl": de volledige post tekst in het Nederlands (inclusief eventuele emojis)\n'
+        '- "copy_nl": de volledige post tekst in het Nederlands (inclusief eventuele emojis) — '
+        'verwerk de toegewezen tagline organisch in de tekst\n'
         '- "hashtags": string met hashtags, gescheiden door spaties (3-7 hashtags, mix NL/BE)\n'
         '- "image_prompt": Engelse beschrijving voor een lifestyle foto '
         '(warm, realistisch, 30+ mensen, Belgische setting)\n\n'

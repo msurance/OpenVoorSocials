@@ -2,7 +2,8 @@ import logging
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -85,19 +86,21 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int)
     Generate a square image via Gemini Imagen, apply branding overlay, and persist to MEDIA_ROOT.
     Returns the relative path within MEDIA_ROOT, e.g. 'posts/2026/14/uuid.png'.
     """
-    genai.configure(api_key=settings.GOOGLE_API_KEY)
+    client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
     full_prompt = f"{image_prompt}. {STYLE_SUFFIX}"
 
     logger.info("Generating image for post %s", post_id)
 
-    imagen = genai.ImageGenerationModel("imagen-4.0-generate-001")
-    result = imagen.generate_images(
+    result = client.models.generate_images(
+        model="imagen-4.0-generate-001",
         prompt=full_prompt,
-        number_of_images=1,
-        aspect_ratio="1:1",
-        safety_filter_level="block_low_and_above",
-        person_generation="allow_adult",
+        config=types.GenerateImagesConfig(
+            number_of_images=1,
+            aspect_ratio="1:1",
+            safety_filter_level="BLOCK_LOW_AND_ABOVE",
+            person_generation="ALLOW_ADULT",
+        ),
     )
 
     relative_dir = f"posts/{year}/{week_number}"
@@ -107,7 +110,7 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int)
     relative_path = f"{relative_dir}/{post_id}.png"
     abs_path = Path(settings.MEDIA_ROOT) / relative_path
 
-    image_bytes = result.images[0]._image_bytes
+    image_bytes = result.generated_images[0].image.image_bytes
     with open(abs_path, "wb") as fh:
         fh.write(image_bytes)
 
