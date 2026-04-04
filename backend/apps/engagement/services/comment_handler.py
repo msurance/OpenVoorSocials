@@ -7,13 +7,10 @@ from apps.publishing.services.facebook_publisher import _get_page_token, _appsec
 
 logger = logging.getLogger(__name__)
 
-_FB_CODE_REPLY = (
-    "Wat leuk dat je reageert, {name}! \U0001f917\n\n"
-    "Normaal betaal je \u20ac5 om aan te sluiten (om bots buiten te houden) \u2014 "
-    "maar met jouw persoonlijke code sluit je gratis aan \U0001f3ab\n\n"
-    "Code: {code}\n\n"
-    "Ga naar https://openvoor.app, maak je profiel aan en voer de code in bij het afrekenen. "
-    "Echte mensen, echte connecties. Welkom! \u2728"
+# Public reply — no code, just a teaser
+_FB_PUBLIC_REPLY = (
+    "Wat leuk dat je reageert, {name}! \U0001f917 "
+    "We sturen je zo meteen een privébericht met jouw persoonlijke kortingscode. Check je inbox! \U0001f4eb"
 )
 
 _IG_CODE_REPLY = (
@@ -21,6 +18,16 @@ _IG_CODE_REPLY = (
     "Normaal \u20ac5 om aan te sluiten \u2014 met jouw code sluit je gratis aan \U0001f3ab\n"
     "Code: {code}\n"
     "Maak je profiel aan op https://openvoor.app en voer hem in. Welkom! \u2728"
+)
+
+# Private Messenger message — contains the actual code
+_FB_PRIVATE_MSG = (
+    "Hey {name}! \U0001f917\n\n"
+    "Normaal betaal je \u20ac5 om aan te sluiten (om bots buiten te houden) \u2014 "
+    "maar met jouw persoonlijke code sluit je gratis aan \U0001f3ab\n\n"
+    "Jouw code: {code}\n\n"
+    "Ga naar https://openvoor.app, maak je profiel aan en voer de code in bij het afrekenen. "
+    "Echte mensen, echte connecties. Welkom! \u2728"
 )
 
 _FB_NO_CODES_REPLY = (
@@ -103,8 +110,12 @@ def _send_code_reply(platform: str, comment_id: str, user_name: str, code: str):
     name = _first_name(user_name)
 
     if platform == 'facebook':
-        text = _FB_CODE_REPLY.format(name=name, code=code)
-        _post_fb_comment(comment_id, text, token, proof)
+        # Step 1: public reply (no code — just a teaser)
+        public_text = _FB_PUBLIC_REPLY.format(name=name)
+        _post_fb_comment(comment_id, public_text, token, proof)
+        # Step 2: private Messenger message with the actual code
+        private_text = _FB_PRIVATE_MSG.format(name=name, code=code)
+        _post_fb_private_reply(comment_id, private_text, token, proof)
     elif platform == 'instagram':
         text = _IG_CODE_REPLY.format(name=name, code=code)
         _post_ig_reply(comment_id, text, token, proof)
@@ -131,6 +142,17 @@ def _post_fb_comment(comment_id: str, message: str, token: str, proof: str):
     )
     if not resp.ok:
         logger.error("FB comment reply error: %s", resp.text)
+    resp.raise_for_status()
+
+
+def _post_fb_private_reply(comment_id: str, message: str, token: str, proof: str):
+    resp = requests.post(
+        f"{GRAPH_API_BASE}/{comment_id}/private_replies",
+        data={"message": message, "access_token": token, "appsecret_proof": proof},
+        timeout=15,
+    )
+    if not resp.ok:
+        logger.error("FB private reply error: %s", resp.text)
     resp.raise_for_status()
 
 
