@@ -9,15 +9,18 @@ logger = logging.getLogger(__name__)
 
 _FB_CODE_REPLY = (
     "Wat leuk dat je reageert, {name}! \U0001f917\n\n"
-    "Jouw persoonlijke kortingscode: \U0001f3ab {code}\n\n"
-    "Ga naar https://openvoor.app, maak je profiel aan en voer de code in bij het afrekenen "
-    "\u2014 dan start je jouw eerste maand gratis. Echte mensen, echte connecties. Veel succes! \u2728"
+    "Normaal betaal je \u20ac5 om aan te sluiten (om bots buiten te houden) \u2014 "
+    "maar met jouw persoonlijke code sluit je gratis aan \U0001f3ab\n\n"
+    "Code: {code}\n\n"
+    "Ga naar https://openvoor.app, maak je profiel aan en voer de code in bij het afrekenen. "
+    "Echte mensen, echte connecties. Welkom! \u2728"
 )
 
 _IG_CODE_REPLY = (
-    "Wat leuk {name}! \U0001f917 Jouw kortingscode: \U0001f3ab {code}\n"
-    "Maak je profiel aan op https://openvoor.app en voer hem in bij het afrekenen. "
-    "Echte mensen, echte connecties \u2728"
+    "Wat leuk {name}! \U0001f917\n"
+    "Normaal \u20ac5 om aan te sluiten \u2014 met jouw code sluit je gratis aan \U0001f3ab\n"
+    "Code: {code}\n"
+    "Maak je profiel aan op https://openvoor.app en voer hem in. Welkom! \u2728"
 )
 
 _FB_NO_CODES_REPLY = (
