@@ -108,7 +108,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images', 'generate_video', 'boost_post_action', 'refresh_boost_metrics']
+    actions = ['approve_posts', 'reject_posts', 'publish_now', 'unpublish_posts', 'generate_images', 'regenerate_images', 'generate_video', 'boost_post_action', 'refresh_boost_metrics']
     change_list_template = 'admin/content/socialpost/change_list.html'
 
     def get_urls(self):
@@ -648,6 +648,54 @@ class SocialPostAdmin(admin.ModelAdmin):
             f'{len(post_ids)} post(s) worden op de achtergrond gepubliceerd. Ververs de pagina om de status te zien.',
             messages.SUCCESS,
         )
+
+    @admin.action(description='Verwijderen van platforms (unpublish)')
+    def unpublish_posts(self, request, queryset):
+        from apps.publishing.services.unpublisher import unpublish_post
+
+        published = queryset.filter(status='published')
+        skipped = queryset.exclude(status='published').count()
+
+        if skipped:
+            self.message_user(
+                request,
+                f'{skipped} post(s) overgeslagen — alleen gepubliceerde posts kunnen worden verwijderd.',
+                messages.WARNING,
+            )
+
+        success = 0
+        failed = 0
+        for post in published:
+            result = unpublish_post(post)
+            post.status = 'draft'
+            post.published_at = None
+            post.facebook_post_id = ''
+            post.facebook_reel_id = ''
+            post.instagram_post_id = ''
+            post.instagram_reel_id = ''
+            post.error_message = ''
+            post.save(update_fields=[
+                'status', 'published_at', 'facebook_post_id', 'facebook_reel_id',
+                'instagram_post_id', 'instagram_reel_id', 'error_message',
+            ])
+            if result['errors']:
+                self.message_user(
+                    request,
+                    f'Post "{post.copy_nl[:40]}…" gedeeltelijk verwijderd. '
+                    f'Verwijderd: {", ".join(result["deleted"]) or "geen"}. '
+                    f'Fouten: {", ".join(result["errors"])}',
+                    messages.WARNING,
+                )
+                failed += 1
+            else:
+                success += 1
+
+        if success:
+            self.message_user(
+                request,
+                f'{success} post(s) verwijderd van alle platforms en teruggezet naar concept.',
+                messages.SUCCESS,
+            )
 
     @admin.action(description='▶ Post boostten (Meta Ads)')
     def boost_post_action(self, request, queryset):
