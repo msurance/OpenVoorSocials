@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone, datetime
 
 import requests
 from django.conf import settings
@@ -11,11 +11,14 @@ logger = logging.getLogger(__name__)
 
 GRAPH_API_BASE = "https://graph.facebook.com/v21.0"
 
+DSA_BENEFICIARY = "OpenVoor.app"
+DSA_PAYOR = "OpenVoor.app"
+
 
 def _get_targeting() -> dict:
     """
     Build targeting spec from AppParameter values.
-    Uses a comma-separated list of city keys (boost.geo_keys) — no radius,
+    Uses comma-separated city keys (boost.geo_keys) — no radius,
     which avoids geo boundary errors when cities are near the coast.
     Editable in Django Admin → Parameters.
     """
@@ -41,9 +44,9 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     """
     Boost an existing Facebook page post (image or reel) via the Ads API.
     Prefers the reel ID if available, falls back to the image post ID.
+    Runs on Facebook Feed/Reels + Instagram Feed/Reels.
 
     Creates: Campaign → AdSet (targeting + budget) → AdCreative (existing post) → Ad.
-    Uses OUTCOME_AWARENESS + REACH objective (ODAX) with page_id as promoted_object.
 
     Returns dict with keys: campaign_id, adset_id, ad_id.
     Raises on any API error.
@@ -58,11 +61,18 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     if not story_id:
         raise ValueError(f"Post {post.id} has no facebook_reel_id or facebook_post_id — publish it first")
 
-    end_date = date.today() + timedelta(days=days)
+    # Unix timestamp avoids the '+' URL-encoding issue with ISO format
+    end_ts = int(
+        datetime(
+            *( date.today() + timedelta(days=days) ).timetuple()[:3],
+            23, 59, 59,
+            tzinfo=timezone.utc,
+        ).timestamp()
+    )
     daily_budget_cents = int(daily_budget_eur * 100)
     post_name = f"OpenVoor boost — {post.get_category_display()} {post.scheduled_at:%d/%m/%Y}"
 
-    # 1. Campaign — OUTCOME_AWARENESS for broad reach (ODAX)
+    # 1. Campaign — OUTCOME_AWARENESS (ODAX)
     campaign_resp = requests.post(
         f"{GRAPH_API_BASE}/{ad_account}/campaigns",
         data={
@@ -70,6 +80,7 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "objective": "OUTCOME_AWARENESS",
             "status": "ACTIVE",
             "special_ad_categories": "[]",
+            "is_adset_budget_sharing_enabled": "false",
             "access_token": token,
             "appsecret_proof": proof,
         },
@@ -81,7 +92,7 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     campaign_id = campaign_resp.json()["id"]
     logger.info("Boost campaign created: %s", campaign_id)
 
-    # 2. AdSet — REACH optimization, promoted_object = page (required for OUTCOME_AWARENESS)
+    # 2. AdSet — REACH, city list, Facebook + Instagram placements
     adset_resp = requests.post(
         f"{GRAPH_API_BASE}/{ad_account}/adsets",
         data={
@@ -90,14 +101,17 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "daily_budget": daily_budget_cents,
             "billing_event": "IMPRESSIONS",
             "optimization_goal": "REACH",
+            "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
             "promoted_object": json.dumps({"page_id": page_id}),
             "targeting": json.dumps(_get_targeting()),
             "publisher_platforms": json.dumps(["facebook", "instagram"]),
             "facebook_positions": json.dumps(["feed", "reels"]),
             "instagram_positions": json.dumps(["stream", "reels"]),
-            "end_time": end_date.strftime("%Y-%m-%dT23:59:59+0000"),
+            "end_time": end_ts,
             "status": "ACTIVE",
             "is_adset_budget_sharing_enabled": "false",
+            "dsa_beneficiary": DSA_BENEFICIARY,
+            "dsa_payor": DSA_PAYOR,
             "access_token": token,
             "appsecret_proof": proof,
         },
