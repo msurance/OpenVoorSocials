@@ -5,10 +5,9 @@ services:
       dockerfile: backend/Dockerfile
       cache_from:
         - openvoorsocials:latest
-      cache_to:
-        - type=inline
       args:
         CACHEBUST: ${CACHEBUST:-1}
+        BUILDKIT_INLINE_CACHE: "1"
     image: openvoorsocials:latest
     restart: unless-stopped
     command: >
