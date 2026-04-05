@@ -1,4 +1,58 @@
 {% extends "admin/change_list.html" %}
+
+{% block extrahead %}
+  {{ block.super }}
+  {% if pending_images or pending_videos %}
+  <script>
+    // Auto-refresh status banner every 20s while jobs are running
+    (function() {
+      var statusEl = document.getElementById('generation-status');
+      function refresh() {
+        fetch('generation-status/')
+          .then(r => r.json())
+          .then(function(data) {
+            var img = data.pending_images;
+            var vid = data.pending_videos;
+            if (!statusEl) return;
+            if (img === 0 && vid === 0) {
+              statusEl.innerHTML = '<strong style="color:#198754">✓ Alle afbeeldingen en video\'s zijn klaar.</strong>';
+              statusEl.style.background = '#d1e7dd';
+              statusEl.style.borderColor = '#a3cfbb';
+            } else {
+              var parts = [];
+              if (img > 0) parts.push('⏳ <strong>' + img + '</strong> afbeelding' + (img > 1 ? 'en' : '') + ' wacht' + (img === 1 ? '' : 'en'));
+              if (vid > 0) parts.push('🎬 <strong>' + vid + '</strong> video' + (vid > 1 ? "\'s" : '') + ' wacht' + (vid === 1 ? '' : 'en'));
+              statusEl.innerHTML = parts.join(' &nbsp;·&nbsp; ') + ' &nbsp;<span style="color:#6c757d;font-size:0.85em">ververs automatisch</span>';
+              setTimeout(refresh, 20000);
+            }
+          })
+          .catch(function() { setTimeout(refresh, 30000); });
+      }
+      setTimeout(refresh, 20000);
+    })();
+  </script>
+  {% endif %}
+{% endblock %}
+
+{% block content_title %}
+  {{ block.super }}
+  {% if pending_images or pending_videos %}
+  <div id="generation-status" style="
+    margin: 8px 0 16px;
+    padding: 10px 16px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    font-size: 0.95em;
+  ">
+    {% if pending_images %}⏳ <strong>{{ pending_images }}</strong> afbeelding{{ pending_images|pluralize:"","en" }} wacht{{ pending_images|pluralize:"","en" }}{% endif %}
+    {% if pending_images and pending_videos %} &nbsp;·&nbsp; {% endif %}
+    {% if pending_videos %}🎬 <strong>{{ pending_videos }}</strong> video{{ pending_videos|pluralize:"","'s" }} wacht{{ pending_videos|pluralize:"","en" }}{% endif %}
+    &nbsp;<span style="color:#6c757d;font-size:0.85em">— ververs automatisch elke 20s</span>
+  </div>
+  {% endif %}
+{% endblock %}
+
 {% block object-tools-items %}
   <li>
     <a href="generate-content/" class="button" style="background:#0d6efd;color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-weight:600;">

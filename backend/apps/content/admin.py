@@ -96,8 +96,37 @@ class SocialPostAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         extra = [
             path('generate-content/', self.admin_site.admin_view(self.generate_content_view), name='content_socialpost_generate'),
+            path('generation-status/', self.admin_site.admin_view(self.generation_status_view), name='content_socialpost_generation_status'),
         ]
         return extra + urls
+
+    def generation_status_view(self, request):
+        from django.http import JsonResponse
+        from pathlib import Path
+        pending_images = sum(
+            1 for p in SocialPost.objects.exclude(image_prompt='')
+            if not p.image_path or not (Path(settings.MEDIA_ROOT) / p.image_path).exists()
+        )
+        pending_videos = sum(
+            1 for p in SocialPost.objects.exclude(image_path='').filter(status__in=('draft', 'approved', 'published'))
+            if not p.video_path or not (Path(settings.MEDIA_ROOT) / p.video_path).exists()
+        )
+        return JsonResponse({'pending_images': pending_images, 'pending_videos': pending_videos})
+
+    def changelist_view(self, request, extra_context=None):
+        from pathlib import Path
+        pending_images = sum(
+            1 for p in SocialPost.objects.exclude(image_prompt='')
+            if not p.image_path or not (Path(settings.MEDIA_ROOT) / p.image_path).exists()
+        )
+        pending_videos = sum(
+            1 for p in SocialPost.objects.exclude(image_path='').filter(status__in=('draft', 'approved', 'published'))
+            if not p.video_path or not (Path(settings.MEDIA_ROOT) / p.video_path).exists()
+        )
+        extra_context = extra_context or {}
+        extra_context['pending_images'] = pending_images
+        extra_context['pending_videos'] = pending_videos
+        return super().changelist_view(request, extra_context=extra_context)
 
     def generate_content_view(self, request):
         from django.utils import timezone
