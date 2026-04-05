@@ -455,11 +455,22 @@ class SocialPostAdmin(admin.ModelAdmin):
         def _publish(ids):
             django.db.connections.close_all()
             from django.utils import timezone
+            from django.db import transaction
             for post_id in ids:
-                try:
-                    post = SocialPost.objects.get(id=post_id)
-                except SocialPost.DoesNotExist:
-                    continue
+                # Use select_for_update to prevent race with the cron publisher
+                with transaction.atomic():
+                    post = (
+                        SocialPost.objects.select_for_update(skip_locked=True)
+                        .filter(id=post_id, status='approved')
+                        .first()
+                    )
+                    if post is None:
+                        logger.info("Post %s already claimed or not approved — skipping", post_id)
+                        continue
+                    # Mark as published immediately inside the lock so cron can't grab it
+                    post.status = 'published'
+                    post.save(update_fields=['status'])
+
                 errors = []
 
                 if post.platform in ('facebook', 'both'):
@@ -485,22 +496,17 @@ class SocialPostAdmin(admin.ModelAdmin):
                 if errors:
                     post.status = 'failed'
                     post.error_message = '\n'.join(errors)
-                    post.save(update_fields=[
-                        'status', 'error_message',
-                        'facebook_post_id', 'facebook_reel_id',
-                        'instagram_post_id', 'instagram_reel_id',
-                    ])
                     logger.error("Post %s publication failed: %s", post_id, errors)
                 else:
-                    post.status = 'published'
                     post.published_at = timezone.now()
                     post.error_message = ''
-                    post.save(update_fields=[
-                        'status', 'published_at', 'error_message',
-                        'facebook_post_id', 'facebook_reel_id',
-                        'instagram_post_id', 'instagram_reel_id',
-                    ])
                     logger.info("Post %s published successfully", post_id)
+
+                post.save(update_fields=[
+                    'status', 'published_at', 'error_message',
+                    'facebook_post_id', 'facebook_reel_id',
+                    'instagram_post_id', 'instagram_reel_id',
+                ])
 
         threading.Thread(target=_publish, args=(post_ids,), daemon=False).start()
         self.message_user(
