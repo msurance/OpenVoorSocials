@@ -443,73 +443,68 @@ class SocialPostAdmin(admin.ModelAdmin):
 
     @admin.action(description='Nu publiceren')
     def publish_now(self, request, queryset):
-        from django.utils import timezone
-
+        import threading
+        import django.db
         from apps.publishing.services.facebook_publisher import publish_to_facebook
         from apps.publishing.services.instagram_publisher import publish_to_instagram
 
-        now = timezone.now()
-        success_count = 0
-        fail_count = 0
+        post_ids = list(queryset.values_list('id', flat=True))
+        if not post_ids:
+            return
 
-        for post in queryset:
-            errors = []
-
-            if post.platform in ('facebook', 'both'):
+        def _publish(ids):
+            django.db.connections.close_all()
+            from django.utils import timezone
+            for post_id in ids:
                 try:
-                    result = publish_to_facebook(post)
-                    # publish_to_facebook returns "post_id" or "post_id,reel_id"
-                    parts = (result or '').split(',')
-                    post.facebook_post_id = parts[0] if len(parts) > 0 else ''
-                    post.facebook_reel_id = parts[1] if len(parts) > 1 else ''
-                except Exception as exc:
-                    logger.error(f"Admin publish_now Facebook failed for {post.id}: {exc}")
-                    errors.append(f"Facebook: {exc}")
+                    post = SocialPost.objects.get(id=post_id)
+                except SocialPost.DoesNotExist:
+                    continue
+                errors = []
 
-            if post.platform in ('instagram', 'both'):
-                try:
-                    result = publish_to_instagram(post)
-                    # publish_to_instagram returns "image_id" or "image_id,reel_id"
-                    parts = (result or '').split(',')
-                    post.instagram_post_id = parts[0] if len(parts) > 0 else ''
-                    post.instagram_reel_id = parts[1] if len(parts) > 1 else ''
-                except Exception as exc:
-                    logger.error(f"Admin publish_now Instagram failed for {post.id}: {exc}")
-                    errors.append(f"Instagram: {exc}")
+                if post.platform in ('facebook', 'both'):
+                    try:
+                        result = publish_to_facebook(post)
+                        parts = (result or '').split(',')
+                        post.facebook_post_id = parts[0] if len(parts) > 0 else ''
+                        post.facebook_reel_id = parts[1] if len(parts) > 1 else ''
+                    except Exception as exc:
+                        logger.error("Async publish_now Facebook failed for %s: %s", post_id, exc)
+                        errors.append(f"Facebook: {exc}")
 
-            if errors:
-                post.status = 'failed'
-                post.error_message = '\n'.join(errors)
-                post.save(update_fields=[
-                    'status', 'error_message',
-                    'facebook_post_id', 'instagram_post_id',
-                ])
-                self.message_user(
-                    request,
-                    f'Post {post.id} mislukt: {"; ".join(errors)}',
-                    messages.ERROR,
-                )
-                fail_count += 1
-            else:
-                post.status = 'published'
-                post.published_at = now
-                post.error_message = ''
-                post.save(update_fields=[
-                    'status', 'published_at', 'error_message',
-                    'facebook_post_id', 'facebook_reel_id',
-                    'instagram_post_id', 'instagram_reel_id',
-                ])
-                success_count += 1
+                if post.platform in ('instagram', 'both'):
+                    try:
+                        result = publish_to_instagram(post)
+                        parts = (result or '').split(',')
+                        post.instagram_post_id = parts[0] if len(parts) > 0 else ''
+                        post.instagram_reel_id = parts[1] if len(parts) > 1 else ''
+                    except Exception as exc:
+                        logger.error("Async publish_now Instagram failed for %s: %s", post_id, exc)
+                        errors.append(f"Instagram: {exc}")
 
-        if success_count:
-            self.message_user(
-                request,
-                f'{success_count} post(s) succesvol gepubliceerd.',
-                messages.SUCCESS,
-            )
-        if fail_count:
-            self.message_user(
-                request,
-                f'{fail_count} post(s) mislukt. Zie details hierboven.',
-                messages.ERROR,
-            )
+                if errors:
+                    post.status = 'failed'
+                    post.error_message = '\n'.join(errors)
+                    post.save(update_fields=[
+                        'status', 'error_message',
+                        'facebook_post_id', 'facebook_reel_id',
+                        'instagram_post_id', 'instagram_reel_id',
+                    ])
+                    logger.error("Post %s publication failed: %s", post_id, errors)
+                else:
+                    post.status = 'published'
+                    post.published_at = timezone.now()
+                    post.error_message = ''
+                    post.save(update_fields=[
+                        'status', 'published_at', 'error_message',
+                        'facebook_post_id', 'facebook_reel_id',
+                        'instagram_post_id', 'instagram_reel_id',
+                    ])
+                    logger.info("Post %s published successfully", post_id)
+
+        threading.Thread(target=_publish, args=(post_ids,), daemon=False).start()
+        self.message_user(
+            request,
+            f'{len(post_ids)} post(s) worden op de achtergrond gepubliceerd. Ververs de pagina om de status te zien.',
+            messages.SUCCESS,
+        )
