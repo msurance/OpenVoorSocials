@@ -4,7 +4,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM = """Je bent de sociale media assistent van OpenVoor.app — een Belgisch AI-matchmaking platform voor 30-plussers.
+_SYSTEM_BASE = """Je bent de sociale media assistent van OpenVoor.app — een Belgisch AI-matchmaking platform voor 30-plussers.
 OpenVoor is warm, eerlijk en menselijk. De toon is vriendelijk, enthousiast maar nooit overdreven.
 
 Kernwaarden:
@@ -13,6 +13,18 @@ Kernwaarden:
 - AI-matching op basis van wie je écht bent, niet op foto's swipen
 - 100% GDPR-proof, privacy centraal
 - Belgisch, authentiek, warm"""
+
+
+def _build_system() -> str:
+    """Build system prompt, injecting app knowledge base if available."""
+    try:
+        from apps.params.helpers import get_document
+        knowledge = get_document('app.knowledge_base')
+    except Exception:
+        knowledge = ''
+    if knowledge:
+        return f"{_SYSTEM_BASE}\n\n---\n\n## Hoe OpenVoor werkt (gebruik dit bij vragen)\n\n{knowledge}"
+    return _SYSTEM_BASE
 
 _FB_CODE_PROMPT = """Iemand heeft gereageerd op een Facebook-post van OpenVoor.app met het woord "{keyword}" in hun comment.
 
@@ -96,7 +108,7 @@ def _call_claude(prompt: str, max_tokens: int = 300) -> str:
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=max_tokens,
-        system=_SYSTEM,
+        system=_build_system(),
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text.strip()

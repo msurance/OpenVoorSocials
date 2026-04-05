@@ -29,6 +29,27 @@ def get_param(key: str, default=None):
         return default
 
 
+def get_document(key: str) -> str:
+    """
+    Fetch an AppDocument's content by key (cached 5 minutes).
+    Returns empty string if not found or DB unavailable.
+    """
+    cache_key = f"appdoc:{key}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from apps.params.models import AppDocument
+        obj = AppDocument.objects.filter(key=key).first()
+        content = obj.content if obj else ''
+        cache.set(cache_key, content, 300)
+        return content
+    except Exception as exc:
+        logger.warning("get_document('%s') failed: %s", key, exc)
+        return ''
+
+
 def _cast(value: str, default):
     if isinstance(default, bool):
         return value.lower() in ('1', 'true', 'yes')
