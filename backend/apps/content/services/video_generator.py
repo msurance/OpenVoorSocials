@@ -93,7 +93,7 @@ def generate_video(post_id: str, image_path_relative: str, category: str, week_n
             "prompt": motion_prompt,
             "image_url": image_url,
             "duration": "5",
-            "aspect_ratio": "1:1",
+            "aspect_ratio": "9:16",
         },
         timeout=30,
     )

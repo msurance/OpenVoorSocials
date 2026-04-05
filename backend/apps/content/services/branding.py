@@ -27,19 +27,31 @@ def _banner_path(category: str) -> Path:
 
 
 def _create_overlay_png(dest: Path, width: int, height: int, category: str) -> None:
-    """Create a transparent PNG with the dark bar + logo at the bottom, sized width x height."""
+    """
+    Create a transparent PNG overlay for video branding:
+      - bottom 10%: solid black safety strip (hides Instagram UI chrome)
+      - next 13%: dark branding bar with logo
+      - rest: fully transparent
+    """
     banner_src = _banner_path(category)
     if not banner_src.exists():
         logger.warning("Logobanner not found: %s", banner_src)
         return
 
     overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
 
+    # Bottom 10%: solid black (keeps banner above Instagram UI buttons/caption)
+    strip_height = int(height * 0.10)
+    strip_y = height - strip_height
+    draw.rectangle([(0, strip_y), (width, height)], fill=(0, 0, 0, 255))
+
+    # Above strip: 13% dark semi-transparent branding bar
     bar_height = int(height * 0.13)
-    bar_y = height - bar_height
+    bar_y = strip_y - bar_height
+    draw.rectangle([(0, bar_y), (width, strip_y)], fill=_BAR_COLOR)
 
-    ImageDraw.Draw(overlay).rectangle([(0, bar_y), (width, height)], fill=_BAR_COLOR)
-
+    # Logo centered in branding bar
     banner = Image.open(banner_src).convert('RGBA')
     pad = int(bar_height * 0.18)
     target_h = bar_height - 2 * pad
