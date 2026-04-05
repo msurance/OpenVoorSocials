@@ -45,6 +45,7 @@ class SocialPostAdmin(admin.ModelAdmin):
         'status_badge',
         'cta_badge',
         'publish_status',
+        'boost_badge',
     )
     list_filter = ('status', 'category', 'platform', 'week_number', 'discount_cta')
     search_fields = ('copy_nl', 'hashtags')
@@ -61,6 +62,11 @@ class SocialPostAdmin(admin.ModelAdmin):
         'instagram_post_id',
         'instagram_reel_id',
         'error_message',
+        'boost_campaign_id',
+        'boost_ad_set_id',
+        'boost_ad_id',
+        'boost_reach',
+        'boost_spend_eur',
     )
     fieldsets = (
         ('Content', {
@@ -84,12 +90,25 @@ class SocialPostAdmin(admin.ModelAdmin):
             ),
             'classes': ('collapse',),
         }),
+        ('Boost / Advertentie', {
+            'fields': (
+                'boost_status',
+                'boost_daily_budget_eur',
+                'boost_end_date',
+                'boost_reach',
+                'boost_spend_eur',
+                'boost_campaign_id',
+                'boost_ad_set_id',
+                'boost_ad_id',
+            ),
+            'classes': ('collapse',),
+        }),
         ('Metadata', {
             'fields': ('id', 'created_at'),
             'classes': ('collapse',),
         }),
     )
-    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images', 'generate_video']
+    actions = ['approve_posts', 'reject_posts', 'publish_now', 'generate_images', 'regenerate_images', 'generate_video', 'boost_post_action', 'refresh_boost_metrics']
     change_list_template = 'admin/content/socialpost/change_list.html'
 
     def get_urls(self):
@@ -98,6 +117,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             path('generate-content/', self.admin_site.admin_view(self.generate_content_view), name='content_socialpost_generate'),
             path('generation-status/', self.admin_site.admin_view(self.generation_status_view), name='content_socialpost_generation_status'),
             path('resume-generation/', self.admin_site.admin_view(self.resume_generation_view), name='content_socialpost_resume_generation'),
+            path('boost-post/', self.admin_site.admin_view(self.boost_post_view), name='content_socialpost_boost'),
         ]
         return extra + urls
 
@@ -194,6 +214,102 @@ class SocialPostAdmin(admin.ModelAdmin):
             logger.error('Admin generate_content_view failed: %s', exc)
             self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
         return HttpResponseRedirect('../')
+
+    def boost_post_view(self, request):
+        """Intermediate form: collect budget + duration, then fire async boost."""
+        from django.http import HttpResponse
+        from django.utils.safestring import mark_safe
+
+        post_ids = request.POST.getlist('post_ids') or request.GET.getlist('post_ids')
+
+        if request.method == 'POST' and 'confirm' in request.POST:
+            import threading
+            import django.db
+            from apps.publishing.services.facebook_booster import boost_post as do_boost
+
+            daily_budget = float(request.POST.get('daily_budget', 5))
+            days = int(request.POST.get('days', 7))
+
+            def _boost(ids, budget, duration):
+                django.db.connections.close_all()
+                from datetime import date, timedelta
+                for post_id in ids:
+                    try:
+                        post = SocialPost.objects.get(id=post_id)
+                        result = do_boost(post, daily_budget_eur=budget, days=duration)
+                        post.boost_status = 'active'
+                        post.boost_campaign_id = result['campaign_id']
+                        post.boost_ad_set_id = result['adset_id']
+                        post.boost_ad_id = result['ad_id']
+                        post.boost_daily_budget_eur = budget
+                        post.boost_end_date = date.today() + timedelta(days=duration)
+                        post.save(update_fields=[
+                            'boost_status', 'boost_campaign_id', 'boost_ad_set_id',
+                            'boost_ad_id', 'boost_daily_budget_eur', 'boost_end_date',
+                        ])
+                        logger.info("Boost started for post %s — campaign %s", post_id, result['campaign_id'])
+                    except Exception as exc:
+                        logger.error("Boost failed for post %s: %s", post_id, exc)
+                        SocialPost.objects.filter(id=post_id).update(boost_status='failed')
+
+            threading.Thread(target=_boost, args=(post_ids, daily_budget, days), daemon=False).start()
+            self.message_user(
+                request,
+                f'{len(post_ids)} post(s) worden op de achtergrond geboost (€{daily_budget}/dag × {days} dagen). '
+                'Ververs de pagina om de boost-status te zien.',
+                messages.SUCCESS,
+            )
+            return HttpResponseRedirect('../')
+
+        # Show confirmation form
+        posts = SocialPost.objects.filter(id__in=post_ids)
+        post_list = ''.join(
+            f'<li>{p.get_category_display()} — {p.scheduled_at:%d/%m/%Y} — {p.copy_nl[:60]}…</li>'
+            for p in posts
+        )
+        hidden_ids = ''.join(f'<input type="hidden" name="post_ids" value="{pid}">' for pid in post_ids)
+        form_html = f"""
+        <div style="max-width:600px;margin:30px auto;font-family:sans-serif">
+          <h2>Post(s) boostten</h2>
+          <p>Targeting: <strong>Brugge + 10 km, leeftijd 25–65</strong></p>
+          <ul>{post_list}</ul>
+          <form method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{request.META.get('CSRF_COOKIE', '')}">
+            {hidden_ids}
+            <input type="hidden" name="confirm" value="1">
+            <p>
+              <label><strong>Dagelijks budget (€):</strong></label><br>
+              <input type="number" name="daily_budget" value="5" min="1" max="100" step="0.5"
+                     style="width:100px;padding:4px;margin-top:4px">
+            </p>
+            <p>
+              <label><strong>Duur (dagen):</strong></label><br>
+              <input type="number" name="days" value="7" min="1" max="30"
+                     style="width:100px;padding:4px;margin-top:4px">
+            </p>
+            <p style="color:#666;font-size:0.9em">
+              Totaal budget: <span id="total">€35.00</span>
+            </p>
+            <button type="submit"
+                    style="background:#198754;color:#fff;border:none;padding:8px 20px;
+                           border-radius:4px;cursor:pointer;font-size:1em">
+              ✓ Boost starten
+            </button>
+            &nbsp;
+            <a href="../" style="color:#6c757d">Annuleren</a>
+          </form>
+        </div>
+        <script>
+          function upd(){{
+            var b=parseFloat(document.querySelector('[name=daily_budget]').value)||0;
+            var d=parseInt(document.querySelector('[name=days]').value)||0;
+            document.getElementById('total').textContent='€'+(b*d).toFixed(2);
+          }}
+          document.querySelector('[name=daily_budget]').addEventListener('input',upd);
+          document.querySelector('[name=days]').addEventListener('input',upd);
+        </script>
+        """
+        return HttpResponse(mark_safe(form_html))
 
     # ------------------------------------------------------------------
     # Display helpers
@@ -330,6 +446,24 @@ class SocialPostAdmin(admin.ModelAdmin):
             except OSError:
                 pass
         return url
+
+    @admin.display(description='Boost')
+    def boost_badge(self, obj):
+        status = obj.boost_status
+        if not status:
+            return '—'
+        colours = {'active': '#198754', 'completed': '#6c757d', 'failed': '#dc3545'}
+        labels = {'active': '▶ Actief', 'completed': '✓ Klaar', 'failed': '✗ Mislukt'}
+        colour = colours.get(status, '#6c757d')
+        label = labels.get(status, status)
+        tip = ''
+        if obj.boost_spend_eur is not None:
+            tip = f'€{obj.boost_spend_eur} uitgegeven, {obj.boost_reach or 0} bereik'
+        return format_html(
+            '<span style="background:{c};color:#fff;padding:2px 8px;border-radius:4px;'
+            'font-size:0.8em;font-weight:600" title="{tip}">{label}</span>',
+            c=colour, tip=tip, label=label,
+        )
 
     # ------------------------------------------------------------------
     # Admin actions
@@ -514,3 +648,43 @@ class SocialPostAdmin(admin.ModelAdmin):
             f'{len(post_ids)} post(s) worden op de achtergrond gepubliceerd. Ververs de pagina om de status te zien.',
             messages.SUCCESS,
         )
+
+    @admin.action(description='▶ Post boostten (Meta Ads)')
+    def boost_post_action(self, request, queryset):
+        """Redirect to boost form with selected post IDs."""
+        from django.urls import reverse
+        post_ids = list(queryset.filter(status='published').values_list('id', flat=True))
+        not_published = queryset.exclude(status='published').count()
+        if not_published:
+            self.message_user(
+                request,
+                f'{not_published} post(s) overgeslagen — alleen gepubliceerde posts kunnen worden geboost.',
+                messages.WARNING,
+            )
+        if not post_ids:
+            return
+        ids_qs = '&'.join(f'post_ids={pid}' for pid in post_ids)
+        boost_url = reverse('admin:content_socialpost_boost') + f'?{ids_qs}'
+        return HttpResponseRedirect(boost_url)
+
+    @admin.action(description='↺ Boost metrics vernieuwen')
+    def refresh_boost_metrics(self, request, queryset):
+        from apps.publishing.services.facebook_booster import fetch_boost_metrics
+        updated = 0
+        failed = 0
+        for post in queryset.filter(boost_campaign_id__gt=''):
+            try:
+                metrics = fetch_boost_metrics(post.boost_campaign_id)
+                post.boost_spend_eur = metrics['spend_eur']
+                post.boost_reach = metrics['reach']
+                post.save(update_fields=['boost_spend_eur', 'boost_reach'])
+                updated += 1
+            except Exception as exc:
+                logger.error("Metrics refresh failed for post %s: %s", post.id, exc)
+                failed += 1
+        if updated:
+            self.message_user(request, f'{updated} post(s) bijgewerkt met boost metrics.', messages.SUCCESS)
+        if failed:
+            self.message_user(request, f'{failed} post(s) mislukt.', messages.ERROR)
+        if not updated and not failed:
+            self.message_user(request, 'Geen posts met actieve boost gevonden.', messages.WARNING)
