@@ -45,13 +45,13 @@ Elke post moet:
 5. Een concrete, levendige beschrijving bevatten voor een lifestyle foto (image_prompt)
 
 Belangrijk voor image_prompt:
-- Beschrijf ALLEEN volwassenen (minimum 18 jaar) — geen kinderen, geen baby's
-- Varieer de leeftijd van de mensen in het beeld actief: toon ook regelmatig mensen van 60-75 jaar.
-  Gebruik niet standaard jonge of middelbare mensen — oudere volwassenen zijn even belangrijk.
-- Voor de categorie 'parents': toon de ouder in een gezinscontext via rekwisieten en omgeving
-  (speelgoed op tafel, kindertekeningen aan de muur, kleine laarsjes bij de deur, speeltuin op achtergrond)
-  maar zet GEEN kinderen in het beeld zelf
-- De foto moet realistisch en authentiek aanvoelen, Belgische setting
+- De image_prompt MOET de concrete situatie uit copy_nl weerspiegelen. Als de post over fietsen gaat → mensen op de fiets. Over koken → mensen in de keuken. Over wandelen → mensen op een pad. Kopieer NOOIT het beeld van een andere post.
+- Beschrijf de exacte activiteit, locatie en sfeer die in de post centraal staat — wees specifiek, niet generiek.
+- Varieer de setting sterk tussen posts: café, park, bos, stadsplein, strand, markt, sportclub, woonkamer, terras, museum, bibliotheek, etc.
+- Beschrijf ALLEEN volwassenen (minimum 18 jaar) — geen kinderen, geen baby's.
+- Varieer de leeftijd actief: ook regelmatig mensen van 60-75 jaar. Gebruik NIET standaard jonge mensen.
+- Voor de categorie 'parents': toon de ouder via rekwisieten en omgeving (speelgoed, kindertekeningen, kleine laarsjes) maar GEEN kinderen zichtbaar in het beeld.
+- De foto moet realistisch en authentiek aanvoelen, Belgische setting.
 """
 
 
@@ -86,7 +86,8 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     week_start = jan4 + timedelta(weeks=week_number - 1, days=-jan4.weekday())
 
     schedule = _build_schedule(week_start)[:len(CATEGORY_MIX)]
-    categories = CATEGORY_MIX
+    categories = CATEGORY_MIX.copy()
+    random.shuffle(categories)
 
     # Assign one rotating tagline per post
     tagged = [
@@ -108,8 +109,10 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
         '- "copy_nl": de volledige post tekst in het Nederlands (inclusief eventuele emojis) — '
         'verwerk de toegewezen tagline organisch in de tekst\n'
         '- "hashtags": string met hashtags, gescheiden door spaties (3-7 hashtags, mix NL/BE)\n'
-        '- "image_prompt": Engelse beschrijving voor een lifestyle foto '
-        '(warm, realistisch, volwassenen, Belgische setting — leeftijd mag variëren)\n\n'
+        '- "image_prompt": Engelse beschrijving voor een lifestyle foto die DIRECT aansluit bij de '
+        'specifieke situatie in copy_nl (zelfde activiteit, zelfde setting). '
+        'Elke image_prompt moet een unieke locatie en activiteit beschrijven — geen twee posts met hetzelfde beeld. '
+        'Wees concreet: beschrijf wat mensen doen, waar ze zijn, wat er in de achtergrond staat.\n\n'
         'Geef ALLEEN de JSON array terug, geen andere tekst.'
     )
 
