@@ -11,14 +11,26 @@ logger = logging.getLogger(__name__)
 
 GRAPH_API_BASE = "https://graph.facebook.com/v21.0"
 
-# Default targeting: Brugge BE + 10 km radius, age 18-65
-DEFAULT_TARGETING = {
-    "geo_locations": {
-        "cities": [{"key": "172915", "radius": 10, "distance_unit": "kilometer"}]
-    },
-    "age_min": 25,
-    "age_max": 65,  # Facebook's max is 65, which means "65 and older" (covers up to 90+)
-}
+
+def _get_targeting() -> dict:
+    """
+    Build targeting spec from AppParameter values.
+    Editable in Django Admin → Parameters (keys: boost.geo_key, boost.radius_km,
+    boost.age_min, boost.age_max).
+    Falls back to Brugge +10km, age 25-65 if params are missing.
+    """
+    from apps.params.helpers import get_param
+    return {
+        "geo_locations": {
+            "cities": [{
+                "key": get_param('boost.geo_key', '172915'),
+                "radius": get_param('boost.radius_km', 10),
+                "distance_unit": "kilometer",
+            }]
+        },
+        "age_min": get_param('boost.age_min', 25),
+        "age_max": get_param('boost.age_max', 65),
+    }
 
 
 def _proof(token: str) -> str:
@@ -80,7 +92,7 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "daily_budget": daily_budget_cents,
             "billing_event": "IMPRESSIONS",
             "optimization_goal": "POST_ENGAGEMENT",
-            "targeting": json.dumps(DEFAULT_TARGETING),
+            "targeting": json.dumps(_get_targeting()),
             "end_time": end_date.strftime("%Y-%m-%dT23:59:59+0000"),
             "status": "ACTIVE",
             "access_token": token,
