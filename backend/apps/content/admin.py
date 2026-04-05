@@ -118,7 +118,27 @@ class SocialPostAdmin(admin.ModelAdmin):
                 self.message_user(request, 'De komende 7 weken hebben al posts.', messages.WARNING)
                 return HttpResponseRedirect('../')
             Command().handle(week=week_number, year=year)
-            self.message_user(request, f'Weekbatch week {week_number}/{year} gegenereerd.', messages.SUCCESS)
+            # Fire image + video generation in background threads
+            import threading, django.db
+            def _generate_media():
+                django.db.connections.close_all()
+                from apps.content.management.commands.generate_missing_images import Command as ImgCmd
+                from apps.content.management.commands.generate_missing_videos import Command as VidCmd
+                try:
+                    ImgCmd().handle(week=week_number, year=year, workers=4)
+                except Exception as e:
+                    logger.error('Background image generation failed: %s', e)
+                try:
+                    VidCmd().handle(week=week_number, year=year, all=True, workers=3)
+                except Exception as e:
+                    logger.error('Background video generation failed: %s', e)
+            threading.Thread(target=_generate_media, daemon=True).start()
+            self.message_user(
+                request,
+                f'Week {week_number}/{year}: {SocialPost.objects.filter(week_number=week_number, year=year).count()} posts aangemaakt. '
+                'Afbeeldingen en video\'s worden op de achtergrond gegenereerd (~10 min). Ververs de pagina om de voortgang te zien.',
+                messages.SUCCESS,
+            )
         except Exception as exc:
             logger.error('Admin generate_content_view failed: %s', exc)
             self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
