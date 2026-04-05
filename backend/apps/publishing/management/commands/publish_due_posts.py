@@ -17,6 +17,19 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
 
+        # Recovery: posts stuck with status='published' but published_at=None were
+        # mid-flight when the server restarted (the thread was killed after the initial
+        # status save but before the final save with IDs). Reset them to 'approved' so
+        # this run picks them up.
+        stuck = SocialPost.objects.filter(status='published', published_at__isnull=True)
+        stuck_count = stuck.count()
+        if stuck_count:
+            stuck.update(status='approved')
+            logger.warning(
+                "Recovered %d post(s) stuck in mid-publish state (server restart?) → reset to approved",
+                stuck_count,
+            )
+
         # select_for_update(skip_locked=True) ensures that if two cron invocations
         # overlap they each grab a non-overlapping set of rows — no double-publishes.
         with transaction.atomic():
