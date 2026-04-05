@@ -97,6 +97,7 @@ class SocialPostAdmin(admin.ModelAdmin):
         extra = [
             path('generate-content/', self.admin_site.admin_view(self.generate_content_view), name='content_socialpost_generate'),
             path('generation-status/', self.admin_site.admin_view(self.generation_status_view), name='content_socialpost_generation_status'),
+            path('resume-generation/', self.admin_site.admin_view(self.resume_generation_view), name='content_socialpost_resume_generation'),
         ]
         return extra + urls
 
@@ -112,6 +113,27 @@ class SocialPostAdmin(admin.ModelAdmin):
             if not p.video_path or not (Path(settings.MEDIA_ROOT) / p.video_path).exists()
         )
         return JsonResponse({'pending_images': pending_images, 'pending_videos': pending_videos})
+
+    def resume_generation_view(self, request):
+        import threading
+        import django.db
+        from apps.content.management.commands.generate_missing_images import Command as ImgCmd
+        from apps.content.management.commands.generate_missing_videos import Command as VidCmd
+
+        def _run():
+            django.db.connections.close_all()
+            try:
+                ImgCmd().handle(week=None, year=None, workers=4)
+            except Exception as e:
+                logger.error('Resume image generation failed: %s', e)
+            try:
+                VidCmd().handle(week=None, year=None, all=True, workers=3)
+            except Exception as e:
+                logger.error('Resume video generation failed: %s', e)
+
+        threading.Thread(target=_run, daemon=False).start()
+        self.message_user(request, 'Generatie hervat — afbeeldingen en video\'s worden opnieuw opgestart op de achtergrond.', messages.SUCCESS)
+        return HttpResponseRedirect('../')
 
     def changelist_view(self, request, extra_context=None):
         from pathlib import Path
@@ -161,7 +183,7 @@ class SocialPostAdmin(admin.ModelAdmin):
                     VidCmd().handle(week=week_number, year=year, all=True, workers=3)
                 except Exception as e:
                     logger.error('Background video generation failed: %s', e)
-            threading.Thread(target=_generate_media, daemon=True).start()
+            threading.Thread(target=_generate_media, daemon=False).start()
             self.message_user(
                 request,
                 f'Week {week_number}/{year}: {SocialPost.objects.filter(week_number=week_number, year=year).count()} posts aangemaakt. '
@@ -401,7 +423,7 @@ class SocialPostAdmin(admin.ModelAdmin):
                 logger.error("Background video FAILED for %s: %s", post_id, exc)
 
         for post_args in posts:
-            t = threading.Thread(target=_run, args=(post_args,), daemon=True)
+            t = threading.Thread(target=_run, args=(post_args,), daemon=False)
             t.start()
 
         msg = f'{len(posts)} video(s) worden op de achtergrond gegenereerd (~90s per video). Ververs de pagina om het resultaat te zien.'

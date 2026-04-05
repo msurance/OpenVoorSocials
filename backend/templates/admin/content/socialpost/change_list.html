@@ -49,6 +49,7 @@
     {% if pending_images and pending_videos %} &nbsp;·&nbsp; {% endif %}
     {% if pending_videos %}🎬 <strong>{{ pending_videos }}</strong> video{{ pending_videos|pluralize:"","'s" }} wacht{{ pending_videos|pluralize:"","en" }}{% endif %}
     &nbsp;<span style="color:#6c757d;font-size:0.85em">— ververs automatisch elke 20s</span>
+    &nbsp;&nbsp;<a href="resume-generation/" style="background:#fd7e14;color:#fff;padding:3px 10px;border-radius:4px;text-decoration:none;font-size:0.85em;font-weight:600;">↺ Hervat</a>
   </div>
   {% endif %}
 {% endblock %}
