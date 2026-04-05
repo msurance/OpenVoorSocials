@@ -15,19 +15,15 @@ GRAPH_API_BASE = "https://graph.facebook.com/v21.0"
 def _get_targeting() -> dict:
     """
     Build targeting spec from AppParameter values.
-    Editable in Django Admin → Parameters (keys: boost.geo_key, boost.radius_km,
-    boost.age_min, boost.age_max).
-    Falls back to Brugge +10km, age 25-65 if params are missing.
+    Uses a comma-separated list of city keys (boost.geo_keys) — no radius,
+    which avoids geo boundary errors when cities are near the coast.
+    Editable in Django Admin → Parameters.
     """
     from apps.params.helpers import get_param
+    geo_keys_str = get_param('boost.geo_keys', '172915,173785,177675,178283,181937')
+    cities = [{"key": k.strip()} for k in geo_keys_str.split(',') if k.strip()]
     return {
-        "geo_locations": {
-            "cities": [{
-                "key": get_param('boost.geo_key', '172915'),
-                "radius": get_param('boost.radius_km', 10),
-                "distance_unit": "kilometer",
-            }]
-        },
+        "geo_locations": {"cities": cities},
         "age_min": get_param('boost.age_min', 25),
         "age_max": get_param('boost.age_max', 65),
     }
@@ -43,9 +39,11 @@ def _proof(token: str) -> str:
 
 def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     """
-    Boost an existing Facebook page post via the Ads API.
+    Boost an existing Facebook page post (image or reel) via the Ads API.
+    Prefers the reel ID if available, falls back to the image post ID.
 
     Creates: Campaign → AdSet (targeting + budget) → AdCreative (existing post) → Ad.
+    Uses OUTCOME_AWARENESS + REACH objective (ODAX) with page_id as promoted_object.
 
     Returns dict with keys: campaign_id, adset_id, ad_id.
     Raises on any API error.
@@ -55,21 +53,21 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     ad_account = settings.FACEBOOK_AD_ACCOUNT_ID
     page_id = settings.FACEBOOK_PAGE_ID
 
-    # The Facebook post ID to boost (feed post, not reel)
-    if not post.facebook_post_id:
-        raise ValueError(f"Post {post.id} has no facebook_post_id — publish it first")
+    # Prefer reel; fall back to regular post
+    story_id = post.facebook_reel_id or post.facebook_post_id
+    if not story_id:
+        raise ValueError(f"Post {post.id} has no facebook_reel_id or facebook_post_id — publish it first")
 
     end_date = date.today() + timedelta(days=days)
-    # Facebook expects daily_budget in cents
     daily_budget_cents = int(daily_budget_eur * 100)
     post_name = f"OpenVoor boost — {post.get_category_display()} {post.scheduled_at:%d/%m/%Y}"
 
-    # 1. Campaign
+    # 1. Campaign — OUTCOME_AWARENESS for broad reach (ODAX)
     campaign_resp = requests.post(
         f"{GRAPH_API_BASE}/{ad_account}/campaigns",
         data={
             "name": post_name,
-            "objective": "POST_ENGAGEMENT",
+            "objective": "OUTCOME_AWARENESS",
             "status": "ACTIVE",
             "special_ad_categories": "[]",
             "access_token": token,
@@ -83,7 +81,7 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     campaign_id = campaign_resp.json()["id"]
     logger.info("Boost campaign created: %s", campaign_id)
 
-    # 2. AdSet
+    # 2. AdSet — REACH optimization, promoted_object = page (required for OUTCOME_AWARENESS)
     adset_resp = requests.post(
         f"{GRAPH_API_BASE}/{ad_account}/adsets",
         data={
@@ -91,10 +89,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "campaign_id": campaign_id,
             "daily_budget": daily_budget_cents,
             "billing_event": "IMPRESSIONS",
-            "optimization_goal": "POST_ENGAGEMENT",
+            "optimization_goal": "REACH",
+            "promoted_object": json.dumps({"page_id": page_id}),
             "targeting": json.dumps(_get_targeting()),
             "end_time": end_date.strftime("%Y-%m-%dT23:59:59+0000"),
             "status": "ACTIVE",
+            "is_adset_budget_sharing_enabled": "false",
             "access_token": token,
             "appsecret_proof": proof,
         },
@@ -106,13 +106,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     adset_id = adset_resp.json()["id"]
     logger.info("Boost adset created: %s", adset_id)
 
-    # 3. AdCreative — references existing page post
-    object_story_id = f"{page_id}_{post.facebook_post_id.split('_')[-1]}"
+    # 3. AdCreative — references the existing page post or reel
     creative_resp = requests.post(
         f"{GRAPH_API_BASE}/{ad_account}/adcreatives",
         data={
             "name": post_name,
-            "object_story_id": post.facebook_post_id,
+            "object_story_id": story_id,
             "access_token": token,
             "appsecret_proof": proof,
         },

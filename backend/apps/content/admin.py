@@ -595,11 +595,11 @@ class SocialPostAdmin(admin.ModelAdmin):
                 with transaction.atomic():
                     post = (
                         SocialPost.objects.select_for_update(skip_locked=True)
-                        .filter(id=post_id, status='approved')
+                        .filter(id=post_id, status__in=['draft', 'approved'])
                         .first()
                     )
                     if post is None:
-                        logger.info("Post %s already claimed or not approved — skipping", post_id)
+                        logger.info("Post %s already published or locked — skipping", post_id)
                         continue
                     # Mark as published immediately inside the lock so cron can't grab it
                     post.status = 'published'
