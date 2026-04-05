@@ -8,14 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# ffmpeg only — libpq-dev/gcc not needed (psycopg2-binary is a pre-built wheel)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc curl ffmpeg \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install supercronic (static binary) — cached layer, only re-runs if this line changes
-RUN curl -fsSL https://github.com/aptible/supercronic/releases/download/v0.2.33/supercronic-linux-amd64 \
-    -o /usr/local/bin/supercronic \
-    && chmod +x /usr/local/bin/supercronic
+# Supercronic bundled in repo — no GitHub download needed at build time
+COPY bin/supercronic-linux-amd64 /usr/local/bin/supercronic
+RUN chmod +x /usr/local/bin/supercronic
 
 # requirements first — this layer is cached until requirements.txt changes
 COPY backend/requirements.txt .
