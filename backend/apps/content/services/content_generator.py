@@ -26,16 +26,16 @@ CATEGORY_MIX = [
     'parents', 'parents',
 ]
 
-# Two optimal publishing slots for the Belgian 30+ audience
+# Two optimal publishing slots
 POST_TIMES = ['10:00', '19:00']
 
-SYSTEM_PROMPT = """Je bent een sociale media expert voor OpenVoor.app, een AI-matchmaking platform voor Belgen van 30+.
+SYSTEM_PROMPT = """Je bent een sociale media expert voor OpenVoor.app, een Belgisch AI-matchmaking platform voor volwassenen (18+).
 OpenVoor.app helpt mensen die moeite hebben om nieuwe verbindingen te vinden — voor liefde, vriendschap, sport, reizen en ouderschap.
 
 Schrijf authentieke, warme en herkenbare Nederlandse posts voor Facebook en Instagram.
-Doelgroep: Belgen van 30+, mensen die zich soms alleen voelen en op zoek zijn naar echte verbinding.
+Doelgroep: Belgen van alle leeftijden (minimum 18 jaar). Sommige posts mogen een specifieke leeftijdsgroep aanspreken (jongvolwassenen, mensen in de 30, mensen in de 40, senioren...) — maar doe dit enkel als het organisch past bij het thema, niet als standaard.
 Toon: warm, eerlijk, niet te commercieel, lichtjes humoristisch waar gepast.
-NIET: geen technologisch jargon, geen "algoritme"-taal, geen generieke dating-app clichés.
+NIET: geen technologisch jargon, geen "algoritme"-taal, geen generieke dating-app clichés. Vermijd ook generieke verwijzingen naar "30+" tenzij het thema daar specifiek om vraagt.
 
 Elke post moet:
 1. Beginnen met een herkenbare situatie of vraag (geen app-reclame als opener)
@@ -45,7 +45,8 @@ Elke post moet:
 5. Een concrete, levendige beschrijving bevatten voor een lifestyle foto (image_prompt)
 
 Belangrijk voor image_prompt:
-- Beschrijf ALLEEN volwassenen (30-50 jaar) — geen kinderen, geen baby's
+- Beschrijf ALLEEN volwassenen (minimum 18 jaar) — geen kinderen, geen baby's
+- De leeftijd van de mensen in het beeld mag variëren (jong, middelbaar, ouder) afhankelijk van de toon van de post
 - Voor de categorie 'parents': toon de ouder in een gezinscontext via rekwisieten en omgeving
   (speelgoed op tafel, kindertekeningen aan de muur, kleine laarsjes bij de deur, speeltuin op achtergrond)
   maar zet GEEN kinderen in het beeld zelf
@@ -107,7 +108,7 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
         'verwerk de toegewezen tagline organisch in de tekst\n'
         '- "hashtags": string met hashtags, gescheiden door spaties (3-7 hashtags, mix NL/BE)\n'
         '- "image_prompt": Engelse beschrijving voor een lifestyle foto '
-        '(warm, realistisch, 30+ mensen, Belgische setting)\n\n'
+        '(warm, realistisch, volwassenen, Belgische setting — leeftijd mag variëren)\n\n'
         'Geef ALLEEN de JSON array terug, geen andere tekst.'
     )
 

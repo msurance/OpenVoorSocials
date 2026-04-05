@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 STYLE_SUFFIX = (
     "Warm lifestyle photography, realistic, natural lighting, "
     "teal and navy color accents, Belgian urban or nature setting, "
-    "inclusive, adults aged 30-50, candid and authentic feel, "
+    "inclusive, adults of various ages (18+), candid and authentic feel, "
     "no text overlays, no logos, high quality."
 )
 
