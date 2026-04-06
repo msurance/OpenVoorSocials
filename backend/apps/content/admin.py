@@ -233,14 +233,6 @@ class SocialPostAdmin(admin.ModelAdmin):
             iso = start_date.isocalendar()
             week_number, year = iso[1], iso[0]
 
-            if SocialPost.objects.filter(week_number=week_number, year=year).exists():
-                self.message_user(
-                    request,
-                    f'Week {week_number}/{year} heeft al posts. Kies een andere datum.',
-                    messages.WARNING,
-                )
-                return HttpResponseRedirect('')
-
             try:
                 from apps.content.management.commands.generate_weekly_content import Command
                 Command().handle(week=week_number, year=year)
