@@ -224,6 +224,7 @@ class SocialPostAdmin(admin.ModelAdmin):
 
         if request.method == 'POST':
             date_str = request.POST.get('start_date', '')
+            post_count = int(request.POST.get('post_count', 12))
             try:
                 start_date = datetime.date.fromisoformat(date_str)
             except ValueError:
@@ -235,7 +236,10 @@ class SocialPostAdmin(admin.ModelAdmin):
 
             try:
                 from apps.content.management.commands.generate_weekly_content import Command
-                Command().handle(week=week_number, year=year)
+                count_before = SocialPost.objects.filter(week_number=week_number, year=year).count()
+                Command().handle(week=week_number, year=year, count=post_count, force=True)
+                count_after = SocialPost.objects.filter(week_number=week_number, year=year).count()
+                new_count = count_after - count_before
 
                 import threading, django.db
                 def _generate_media():
@@ -252,10 +256,9 @@ class SocialPostAdmin(admin.ModelAdmin):
                         logger.error('Background video generation failed: %s', e)
                 threading.Thread(target=_generate_media, daemon=False).start()
 
-                count = SocialPost.objects.filter(week_number=week_number, year=year).count()
                 self.message_user(
                     request,
-                    f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {count} posts aangemaakt. '
+                    f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {new_count} nieuwe posts aangemaakt. '
                     'Afbeeldingen en video\'s worden op de achtergrond gegenereerd.',
                     messages.SUCCESS,
                 )
@@ -272,7 +275,7 @@ class SocialPostAdmin(admin.ModelAdmin):
         <div style="max-width:480px;margin:40px auto;font-family:sans-serif">
           <h2>Weekplanning genereren vanaf datum</h2>
           <p style="color:#555">
-            Kies de startdatum van de week. Posts worden verdeeld over die week
+            Kies de startdatum en het aantal posts. Posts worden verdeeld over die week
             op de vaste tijdstippen (ma–zo, 10:00 en 19:00).
           </p>
           <form method="post">
@@ -282,6 +285,12 @@ class SocialPostAdmin(admin.ModelAdmin):
               <input type="date" name="start_date" value="{next_monday.isoformat()}"
                      style="margin-top:6px;padding:6px 10px;font-size:1em;border:1px solid #ccc;border-radius:4px">
               <span id="week-label" style="margin-left:12px;color:#555;font-size:0.9em"></span>
+            </p>
+            <p>
+              <label style="font-weight:600">Aantal posts:</label><br>
+              <input type="number" name="post_count" value="12" min="1" max="12"
+                     style="margin-top:6px;padding:6px 10px;font-size:1em;border:1px solid #ccc;border-radius:4px;width:80px">
+              <span style="color:#888;font-size:0.9em;margin-left:8px">max. 12</span>
             </p>
             <button type="submit"
                     style="background:#0d6efd;color:#fff;border:none;padding:8px 22px;

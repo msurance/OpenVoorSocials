@@ -13,16 +13,10 @@ class Command(BaseCommand):
     help = 'Generate weekly social media content using Claude + Gemini'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--week',
-            type=int,
-            help='ISO week number to generate (default: next week)',
-        )
-        parser.add_argument(
-            '--year',
-            type=int,
-            help='Year for the target week (default: current or next year)',
-        )
+        parser.add_argument('--week', type=int, help='ISO week number to generate (default: next week)')
+        parser.add_argument('--year', type=int, help='Year for the target week')
+        parser.add_argument('--count', type=int, default=None, help='Number of posts to generate (default: 12)')
+        parser.add_argument('--force', action='store_true', help='Skip idempotency guard and generate even if posts already exist')
 
     def handle(self, *args, **options):
         now = timezone.now()
@@ -34,22 +28,22 @@ class Command(BaseCommand):
             next_week = now + timezone.timedelta(weeks=1)
             iso = next_week.isocalendar()
             week_number = iso[1]
-            year = iso[0]  # use isocalendar year, not calendar year (handles Jan edge case)
+            year = iso[0]
 
         self.stdout.write(f"Generating content for week {week_number}/{year}...")
 
-        # Idempotency guard — skip if we already have posts for this week
+        # Idempotency guard — skip if posts already exist (bypass with --force)
         existing = SocialPost.objects.filter(week_number=week_number, year=year).count()
-        if existing > 0:
+        if existing > 0 and not options.get('force'):
             self.stdout.write(
                 self.style.WARNING(
                     f"Week {week_number}/{year} already has {existing} posts. "
-                    "Pass --week/--year explicitly to re-generate a different week."
+                    "Use --force to generate additional posts."
                 )
             )
             return
 
-        posts_data = generate_weekly_posts(week_number, year)
+        posts_data = generate_weekly_posts(week_number, year, count=options.get('count'))
 
         created = []
         for data in posts_data:
