@@ -40,9 +40,10 @@ BLIND_GETROUWD_ANGLES = {
     ),
     'parents': (
         "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-gevoel. De AI-Expertengroep van OpenVoor "
-        "koppelt jou aan een andere ouder in exact dezelfde levensfase — zelfde uitdagingen, zelfde aanpak, zelfde chaos. "
-        "Gebruik 'de AI-Expertengroep' als naam en verwijs naar het gevoel van 'gematcht op wie je bent als ouder'. "
-        "Toon: herkenbaar, warm, een beetje self-aware."
+        "koppelt jou aan een andere ouder waarvan de kinderen in exact dezelfde levensfase zitten — zelfde leeftijd, "
+        "zelfde uitdagingen, zelfde vragen. Geen romantiek, geen dating — gewoon een andere ouder die écht begrijpt "
+        "hoe jij het aanpakt. Iemand om mee te wandelen met de buggy, samen naar het park te gaan, of gewoon te "
+        "ventileren over slaapgebrek. Gebruik 'de AI-Expertengroep' als naam. Toon: herkenbaar, warm, luchtig."
     ),
 }
 
@@ -70,6 +71,8 @@ POST_TIMES = ['10:00', '19:00']
 SYSTEM_PROMPT = """Je bent een sociale media expert voor OpenVoor.app, een Belgisch AI-matchmaking platform voor volwassenen (18+).
 OpenVoor.app helpt mensen die moeite hebben om nieuwe verbindingen te vinden — voor liefde, vriendschap, sport, reizen en ouderschap.
 
+BELANGRIJK voor de categorie 'parents': dit gaat NIET over daten of een romantische partner zoeken voor mensen met kinderen. Het gaat over ouders verbinden met andere ouders waarvan de kinderen in dezelfde levensfase zitten — zelfde leeftijd, zelfde uitdagingen, zelfde vragen. Zodat ze ervaringen kunnen uitwisselen, samen activiteiten kunnen doen met de kinderen, of gewoon iemand hebben die begrijpt hoe het voelt. Denk aan: een wandeling met de buggy's, samen naar het park, ervaringen delen over slaapproblemen of schoolkeuze. Nooit romantisch.
+
 Schrijf authentieke, warme en herkenbare Nederlandse posts voor Facebook en Instagram.
 Doelgroep: Belgen van alle leeftijden (minimum 18 jaar). De realiteit is dat eenzaamheid en de zoektocht naar verbinding mensen van 25 tot 75 treft. Verdeel de posts over de volledige leeftijdsspectrum — twintigers, dertigers, veertigers, vijftigers, en ook mensen in de 60 en 70. Sommige posts mogen een specifieke leeftijdsgroep aanspreken, maar doe dit enkel als het organisch past bij het thema.
 Toon: warm, eerlijk, niet te commercieel, lichtjes humoristisch waar gepast.
@@ -88,7 +91,7 @@ Belangrijk voor image_prompt:
 - Varieer de setting sterk tussen posts: café, park, bos, stadsplein, strand, markt, sportclub, woonkamer, terras, museum, bibliotheek, etc.
 - Beschrijf ALLEEN volwassenen (minimum 18 jaar) — geen kinderen, geen baby's.
 - Varieer de leeftijd actief: ook regelmatig mensen van 60-75 jaar. Gebruik NIET standaard jonge mensen.
-- Voor de categorie 'parents': toon de ouder via rekwisieten en omgeving (speelgoed, kindertekeningen, kleine laarsjes) maar GEEN kinderen zichtbaar in het beeld.
+- Voor de categorie 'parents': toon twee of meer volwassenen (de ouders) samen in een gezinscontext — wandelen met een buggy, op een speelplein, in een park. Kinderen mogen zichtbaar zijn maar zijn nooit het hoofdonderwerp. De verbinding tussen de ouders staat centraal.
 - De foto moet realistisch en authentiek aanvoelen, Belgische setting.
 """
 
