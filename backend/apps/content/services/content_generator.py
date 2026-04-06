@@ -112,7 +112,7 @@ def _build_schedule(week_start: datetime) -> list[datetime]:
     return schedule[:14]
 
 
-def generate_weekly_posts(week_number: int, year: int, count: int = None) -> list[dict]:
+def generate_weekly_posts(week_number: int, year: int, count: int = None, categories: list = None) -> list[dict]:
     """
     Call the Claude API and return a list of post dicts ready for DB insertion.
 
@@ -128,10 +128,15 @@ def generate_weekly_posts(week_number: int, year: int, count: int = None) -> lis
     jan4 = datetime(year, 1, 4)
     week_start = jan4 + timedelta(weeks=week_number - 1, days=-jan4.weekday())
 
-    n = min(count, len(CATEGORY_MIX)) if count else len(CATEGORY_MIX)
-    categories = CATEGORY_MIX.copy()
-    random.shuffle(categories)
-    categories = categories[:n]
+    # Build the pool: use provided categories or fall back to CATEGORY_MIX
+    if categories:
+        # Cycle through selected categories to fill the requested count
+        pool = [categories[i % len(categories)] for i in range(len(CATEGORY_MIX))]
+    else:
+        pool = CATEGORY_MIX.copy()
+    random.shuffle(pool)
+    n = min(count, len(pool)) if count else len(pool)
+    categories = pool[:n]
     schedule = _build_schedule(week_start)[:n]
 
     # Determine which posts get the "Blind Getrouwd" AI-expert angle

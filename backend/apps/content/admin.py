@@ -222,9 +222,17 @@ class SocialPostAdmin(admin.ModelAdmin):
         from django.utils.safestring import mark_safe
         import datetime
 
+        all_categories = ['love', 'friends', 'travel', 'sports', 'parents']
+
         if request.method == 'POST':
             date_str = request.POST.get('start_date', '')
             post_count = int(request.POST.get('post_count', 12))
+            selected_cats = request.POST.getlist('categories') or all_categories
+            # Only keep valid values
+            selected_cats = [c for c in selected_cats if c in all_categories]
+            if not selected_cats:
+                selected_cats = all_categories
+
             try:
                 start_date = datetime.date.fromisoformat(date_str)
             except ValueError:
@@ -236,13 +244,13 @@ class SocialPostAdmin(admin.ModelAdmin):
 
             import threading, django.db
 
-            def _generate(wn, yr, cnt, sd):
+            def _generate(wn, yr, cnt, cats):
                 django.db.connections.close_all()
                 try:
                     from apps.content.management.commands.generate_weekly_content import Command
                     from apps.content.management.commands.generate_missing_images import Command as ImgCmd
                     from apps.content.management.commands.generate_missing_videos import Command as VidCmd
-                    Command().handle(week=wn, year=yr, count=cnt, force=True)
+                    Command().handle(week=wn, year=yr, count=cnt, categories=cats, force=True)
                     try:
                         ImgCmd().handle(week=wn, year=yr, workers=4)
                     except Exception as e:
@@ -251,14 +259,15 @@ class SocialPostAdmin(admin.ModelAdmin):
                         VidCmd().handle(week=wn, year=yr, all=True, workers=3)
                     except Exception as e:
                         logger.error('Background video generation failed: %s', e)
-                    logger.info('generate_from_date finished: week %d/%d, %d posts requested', wn, yr, cnt)
+                    logger.info('generate_from_date finished: week %d/%d, %d posts, cats=%s', wn, yr, cnt, cats)
                 except Exception as exc:
                     logger.error('generate_from_date_view background thread failed: %s', exc)
 
-            threading.Thread(target=_generate, args=(week_number, year, post_count, start_date), daemon=False).start()
+            threading.Thread(target=_generate, args=(week_number, year, post_count, selected_cats), daemon=False).start()
+            cat_labels = ', '.join(selected_cats)
             self.message_user(
                 request,
-                f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {post_count} posts worden op de achtergrond gegenereerd (~1 min). '
+                f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {post_count} posts [{cat_labels}] worden op de achtergrond gegenereerd (~1 min). '
                 'Ververs de pagina om de voortgang te zien.',
                 messages.SUCCESS,
             )
@@ -268,11 +277,21 @@ class SocialPostAdmin(admin.ModelAdmin):
         # Default start_date = next Monday
         today = datetime.date.today()
         next_monday = today + datetime.timedelta(days=(7 - today.weekday()))
+        cat_labels = {'love': 'Liefde', 'friends': 'Vrienden', 'travel': 'Reizen', 'sports': 'Sport', 'parents': 'Ouders'}
+        cat_colours = {'love': '#e83e8c', 'friends': '#0dcaf0', 'travel': '#20c997', 'sports': '#fd7e14', 'parents': '#6f42c1'}
+        checkboxes = ''.join(
+            f'<label style="display:inline-flex;align-items:center;gap:6px;margin:4px 8px 4px 0;cursor:pointer">'
+            f'<input type="checkbox" name="categories" value="{cat}" checked '
+            f'style="width:16px;height:16px;accent-color:{cat_colours[cat]}">'
+            f'<span style="background:{cat_colours[cat]};color:#fff;padding:2px 10px;border-radius:4px;font-size:0.85em;font-weight:600">'
+            f'{cat_labels[cat]}</span></label>'
+            for cat in all_categories
+        )
         form_html = f"""
-        <div style="max-width:480px;margin:40px auto;font-family:sans-serif">
+        <div style="max-width:520px;margin:40px auto;font-family:sans-serif">
           <h2>Weekplanning genereren vanaf datum</h2>
           <p style="color:#555">
-            Kies de startdatum en het aantal posts. Posts worden verdeeld over die week
+            Kies de startdatum, categorieën en aantal posts. Posts worden verdeeld over die week
             op de vaste tijdstippen (ma–zo, 10:00 en 19:00).
           </p>
           <form method="post">
@@ -282,6 +301,10 @@ class SocialPostAdmin(admin.ModelAdmin):
               <input type="date" name="start_date" value="{next_monday.isoformat()}"
                      style="margin-top:6px;padding:6px 10px;font-size:1em;border:1px solid #ccc;border-radius:4px">
               <span id="week-label" style="margin-left:12px;color:#555;font-size:0.9em"></span>
+            </p>
+            <p>
+              <label style="font-weight:600">Categorieën:</label><br>
+              <span style="display:flex;flex-wrap:wrap;margin-top:6px">{checkboxes}</span>
             </p>
             <p>
               <label style="font-weight:600">Aantal posts:</label><br>

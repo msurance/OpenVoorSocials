@@ -16,6 +16,7 @@ class Command(BaseCommand):
         parser.add_argument('--week', type=int, help='ISO week number to generate (default: next week)')
         parser.add_argument('--year', type=int, help='Year for the target week')
         parser.add_argument('--count', type=int, default=None, help='Number of posts to generate (default: 12)')
+        parser.add_argument('--categories', type=str, default=None, help='Comma-separated categories to include (default: all)')
         parser.add_argument('--force', action='store_true', help='Skip idempotency guard and generate even if posts already exist')
 
     def handle(self, *args, **options):
@@ -43,7 +44,9 @@ class Command(BaseCommand):
             )
             return
 
-        posts_data = generate_weekly_posts(week_number, year, count=options.get('count'))
+        cats_raw = options.get('categories')
+        categories = [c.strip() for c in cats_raw.split(',')] if cats_raw and isinstance(cats_raw, str) else cats_raw
+        posts_data = generate_weekly_posts(week_number, year, count=options.get('count'), categories=categories)
 
         created = []
         for data in posts_data:
