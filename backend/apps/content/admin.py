@@ -234,37 +234,34 @@ class SocialPostAdmin(admin.ModelAdmin):
             iso = start_date.isocalendar()
             week_number, year = iso[1], iso[0]
 
-            try:
-                from apps.content.management.commands.generate_weekly_content import Command
-                count_before = SocialPost.objects.filter(week_number=week_number, year=year).count()
-                Command().handle(week=week_number, year=year, count=post_count, force=True)
-                count_after = SocialPost.objects.filter(week_number=week_number, year=year).count()
-                new_count = count_after - count_before
+            import threading, django.db
 
-                import threading, django.db
-                def _generate_media():
-                    django.db.connections.close_all()
+            def _generate(wn, yr, cnt, sd):
+                django.db.connections.close_all()
+                try:
+                    from apps.content.management.commands.generate_weekly_content import Command
                     from apps.content.management.commands.generate_missing_images import Command as ImgCmd
                     from apps.content.management.commands.generate_missing_videos import Command as VidCmd
+                    Command().handle(week=wn, year=yr, count=cnt, force=True)
                     try:
-                        ImgCmd().handle(week=week_number, year=year, workers=4)
+                        ImgCmd().handle(week=wn, year=yr, workers=4)
                     except Exception as e:
                         logger.error('Background image generation failed: %s', e)
                     try:
-                        VidCmd().handle(week=week_number, year=year, all=True, workers=3)
+                        VidCmd().handle(week=wn, year=yr, all=True, workers=3)
                     except Exception as e:
                         logger.error('Background video generation failed: %s', e)
-                threading.Thread(target=_generate_media, daemon=False).start()
+                    logger.info('generate_from_date finished: week %d/%d, %d posts requested', wn, yr, cnt)
+                except Exception as exc:
+                    logger.error('generate_from_date_view background thread failed: %s', exc)
 
-                self.message_user(
-                    request,
-                    f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {new_count} nieuwe posts aangemaakt. '
-                    'Afbeeldingen en video\'s worden op de achtergrond gegenereerd.',
-                    messages.SUCCESS,
-                )
-            except Exception as exc:
-                logger.error('generate_from_date_view failed: %s', exc)
-                self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
+            threading.Thread(target=_generate, args=(week_number, year, post_count, start_date), daemon=False).start()
+            self.message_user(
+                request,
+                f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {post_count} posts worden op de achtergrond gegenereerd (~1 min). '
+                'Ververs de pagina om de voortgang te zien.',
+                messages.SUCCESS,
+            )
 
             return HttpResponseRedirect('../')
 
