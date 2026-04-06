@@ -13,36 +13,36 @@ logger = logging.getLogger(__name__)
 # just like the show's experts — but across all life domains.
 BLIND_GETROUWD_ANGLES = {
     'love': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd'-gevoel: in die show worden mensen gematcht op wie ze écht zijn "
-        "— persoonlijkheid, waarden, levensvisie — niet op uiterlijk. Bij OpenVoor werkt het net zo: je wordt gematcht "
-        "op basis van wie je bent, niet op je foto. Verwijs herkenbaar naar het concept zonder 'AI' te noemen: "
-        "'gematcht op papier', 'gekoppeld op wie je écht bent', 'net als in Blind Getrouwd maar dan voor het echte leven'. "
-        "De technologie is onzichtbaar — de match en het gevoel staan centraal."
+        "Schrijf deze post vanuit het 'Blind Getrouwd'-gevoel. In die show beslist de expertengroep wie bij wie past "
+        "— op papier, op basis van persoonlijkheid en waarden, niet op uiterlijk. Bij OpenVoor is dat de AI-Expertengroep. "
+        "Gebruik die naam letterlijk: 'de AI-Expertengroep van OpenVoor', 'de AI-Expertengroep beslist wie bij wie past', "
+        "'net als in Blind Getrouwd, maar de expertengroep bestaat uit AI'. De nadruk ligt op de match en het gevoel — "
+        "gematcht op wie je écht bent — niet op de technologie zelf. Toon: luchtig, herkenbaar, een tikje spannend."
     ),
     'friends': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-gevoel: stel je voor dat iemand jou koppelt "
-        "aan een nieuwe vriend op basis van wie je écht bent — zelfde humor, zelfde tempo, zelfde interesses — "
-        "zonder dat je eerst door honderd profielfoto's moet scrollen. Dat is het Blind Getrouwd-gevoel, maar dan voor "
-        "vriendschap. Verwijs herkenbaar naar 'gematcht op papier' zonder de technologie te benoemen. "
-        "Toon: warm, herkenbaar, lichtjes grappig over hoe awkward vrienden maken als volwassene is."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-gevoel. De AI-Expertengroep van OpenVoor "
+        "koppelt jou aan iemand die écht bij je past als vriend — op basis van wie je bent, niet op je foto. "
+        "Gebruik 'de AI-Expertengroep' als naam, net zoals Blind Getrouwd zijn expertengroep heeft. "
+        "De nadruk ligt op het gevoel: eindelijk iemand gevonden via een match op papier, zonder eindeloos scrollen. "
+        "Toon: warm, herkenbaar, lichtjes grappig over hoe moeilijk vrienden maken als volwassene is."
     ),
     'travel': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-gevoel: stel je voor dat iemand jou koppelt "
-        "aan de perfecte reisgezel op basis van hoe jij reist — zelfde tempo, zelfde budget, zelfde zin in avontuur. "
-        "Verwijs herkenbaar naar 'blind op reis met iemand die perfect bij je past op papier', zonder de technologie "
-        "te benoemen. Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-gevoel. De AI-Expertengroep van OpenVoor "
+        "koppelt jou aan de perfecte reisgezel op basis van hoe jij reist — tempo, budget, avontuurlijkheid. "
+        "Gebruik 'de AI-Expertengroep' als naam en verwijs naar het gevoel van 'blind op reis met iemand die perfect "
+        "op papier matcht'. Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
     ),
     'sports': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-gevoel: stel je voor dat iemand jou koppelt "
-        "aan een sportmaatje dat écht bij je past — zelfde niveau, zelfde motivatie, zelfde tijdsschema. "
-        "Verwijs herkenbaar naar 'gematcht op wie je bent als sporter' zonder de technologie te noemen. "
-        "Toon: energiek, motiverend, herkenbaar voor wie al eens zonder sportmaatje is gevallen."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-gevoel. De AI-Expertengroep van OpenVoor "
+        "koppelt jou aan een sportmaatje dat écht bij je past — zelfde niveau, motivatie en tijdsschema. "
+        "Gebruik 'de AI-Expertengroep' als naam, net zoals in Blind Getrouwd. De nadruk ligt op de match, "
+        "niet op de technologie. Toon: energiek, motiverend, herkenbaar."
     ),
     'parents': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-gevoel: stel je voor dat iemand jou koppelt "
-        "aan een andere ouder die écht in dezelfde situatie zit — zelfde levensfase, zelfde uitdagingen, zelfde aanpak. "
-        "Verwijs herkenbaar naar 'gematcht op wie je bent als ouder' zonder de technologie te benoemen. "
-        "Toon: herkenbaar, warm, een beetje self-aware over de chaos van het ouderschap."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-gevoel. De AI-Expertengroep van OpenVoor "
+        "koppelt jou aan een andere ouder in exact dezelfde levensfase — zelfde uitdagingen, zelfde aanpak, zelfde chaos. "
+        "Gebruik 'de AI-Expertengroep' als naam en verwijs naar het gevoel van 'gematcht op wie je bent als ouder'. "
+        "Toon: herkenbaar, warm, een beetje self-aware."
     ),
 }
 
