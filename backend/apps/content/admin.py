@@ -118,6 +118,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             path('generation-status/', self.admin_site.admin_view(self.generation_status_view), name='content_socialpost_generation_status'),
             path('resume-generation/', self.admin_site.admin_view(self.resume_generation_view), name='content_socialpost_resume_generation'),
             path('boost-post/', self.admin_site.admin_view(self.boost_post_view), name='content_socialpost_boost'),
+            path('generate-from-date/', self.admin_site.admin_view(self.generate_from_date_view), name='content_socialpost_generate_from_date'),
         ]
         return extra + urls
 
@@ -214,6 +215,109 @@ class SocialPostAdmin(admin.ModelAdmin):
             logger.error('Admin generate_content_view failed: %s', exc)
             self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
         return HttpResponseRedirect('../')
+
+    def generate_from_date_view(self, request):
+        """Form to pick a specific start date, then generate content for that ISO week."""
+        from django.http import HttpResponse
+        from django.utils.safestring import mark_safe
+        import datetime
+
+        if request.method == 'POST':
+            date_str = request.POST.get('start_date', '')
+            try:
+                start_date = datetime.date.fromisoformat(date_str)
+            except ValueError:
+                self.message_user(request, 'Ongeldige datum.', messages.ERROR)
+                return HttpResponseRedirect('')
+
+            iso = start_date.isocalendar()
+            week_number, year = iso[1], iso[0]
+
+            if SocialPost.objects.filter(week_number=week_number, year=year).exists():
+                self.message_user(
+                    request,
+                    f'Week {week_number}/{year} heeft al posts. Kies een andere datum.',
+                    messages.WARNING,
+                )
+                return HttpResponseRedirect('')
+
+            try:
+                from apps.content.management.commands.generate_weekly_content import Command
+                Command().handle(week=week_number, year=year)
+
+                import threading, django.db
+                def _generate_media():
+                    django.db.connections.close_all()
+                    from apps.content.management.commands.generate_missing_images import Command as ImgCmd
+                    from apps.content.management.commands.generate_missing_videos import Command as VidCmd
+                    try:
+                        ImgCmd().handle(week=week_number, year=year, workers=4)
+                    except Exception as e:
+                        logger.error('Background image generation failed: %s', e)
+                    try:
+                        VidCmd().handle(week=week_number, year=year, all=True, workers=3)
+                    except Exception as e:
+                        logger.error('Background video generation failed: %s', e)
+                threading.Thread(target=_generate_media, daemon=False).start()
+
+                count = SocialPost.objects.filter(week_number=week_number, year=year).count()
+                self.message_user(
+                    request,
+                    f'Week {week_number}/{year} (vanaf {start_date:%d/%m/%Y}): {count} posts aangemaakt. '
+                    'Afbeeldingen en video\'s worden op de achtergrond gegenereerd.',
+                    messages.SUCCESS,
+                )
+            except Exception as exc:
+                logger.error('generate_from_date_view failed: %s', exc)
+                self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
+
+            return HttpResponseRedirect('../')
+
+        # Default start_date = next Monday
+        today = datetime.date.today()
+        next_monday = today + datetime.timedelta(days=(7 - today.weekday()))
+        form_html = f"""
+        <div style="max-width:480px;margin:40px auto;font-family:sans-serif">
+          <h2>Weekplanning genereren vanaf datum</h2>
+          <p style="color:#555">
+            Kies de startdatum van de week. Posts worden verdeeld over die week
+            op de vaste tijdstippen (ma–zo, 10:00 en 19:00).
+          </p>
+          <form method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{request.META.get('CSRF_COOKIE', '')}">
+            <p>
+              <label style="font-weight:600">Startdatum van de week:</label><br>
+              <input type="date" name="start_date" value="{next_monday.isoformat()}"
+                     style="margin-top:6px;padding:6px 10px;font-size:1em;border:1px solid #ccc;border-radius:4px">
+              <span id="week-label" style="margin-left:12px;color:#555;font-size:0.9em"></span>
+            </p>
+            <button type="submit"
+                    style="background:#0d6efd;color:#fff;border:none;padding:8px 22px;
+                           border-radius:4px;cursor:pointer;font-size:1em;font-weight:600">
+              ✦ Genereer weekplanning
+            </button>
+            &nbsp;
+            <a href="../" style="color:#6c757d">Annuleren</a>
+          </form>
+        </div>
+        <script>
+          function updateWeekLabel() {{
+            var d = new Date(document.querySelector('[name=start_date]').value);
+            if (isNaN(d)) return;
+            // ISO week calculation
+            var jan4 = new Date(d.getFullYear(), 0, 4);
+            var startOfWeek1 = new Date(jan4);
+            startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+            var week = Math.round((d - startOfWeek1) / (7 * 86400000)) + 1;
+            document.getElementById('week-label').textContent = '→ Week ' + week + ' / ' + d.getFullYear();
+          }}
+          document.querySelector('[name=start_date]').addEventListener('change', updateWeekLabel);
+          updateWeekLabel();
+        </script>
+        """
+        from django.http import HttpResponse
+        from django.utils.safestring import mark_safe
+        return HttpResponse(mark_safe(form_html))
 
     def boost_post_view(self, request):
         """Intermediate form: collect budget + duration, then fire async boost."""
