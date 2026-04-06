@@ -308,9 +308,9 @@ class SocialPostAdmin(admin.ModelAdmin):
             </p>
             <p>
               <label style="font-weight:600">Aantal posts:</label><br>
-              <input type="number" name="post_count" value="12" min="1" max="12"
+              <input type="number" name="post_count" value="12" min="1" max="21"
                      style="margin-top:6px;padding:6px 10px;font-size:1em;border:1px solid #ccc;border-radius:4px;width:80px">
-              <span style="color:#888;font-size:0.9em;margin-left:8px">max. 12</span>
+              <span style="color:#888;font-size:0.9em;margin-left:8px">max. 21 (3 per dag × 7 dagen)</span>
             </p>
             <button type="submit"
                     style="background:#0d6efd;color:#fff;border:none;padding:8px 22px;

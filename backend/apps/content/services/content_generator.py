@@ -70,8 +70,8 @@ CATEGORY_MIX = [
     'parents', 'parents',
 ]
 
-# Two optimal publishing slots
-POST_TIMES = ['10:00', '19:00']
+# Three publishing slots per day — gives 21 slots per week (enough headroom for any count)
+POST_TIMES = ['10:00', '13:00', '19:00']
 
 SYSTEM_PROMPT = """Je bent een sociale media expert voor OpenVoor.app, een Belgisch AI-matchmaking platform voor volwassenen (18+).
 OpenVoor.app helpt mensen die moeite hebben om nieuwe verbindingen te vinden — voor liefde, vriendschap, sport, reizen en ouderschap.
@@ -103,10 +103,10 @@ Belangrijk voor image_prompt:
 
 def _build_schedule(week_start: datetime) -> list[datetime]:
     """
-    Return up to 14 scheduled datetime objects for the week.
+    Return up to 21 scheduled datetime objects for the week.
 
-    Strategy: two posts per day (10:00 + 19:00) across all 7 days starting
-    Tuesday, giving exactly 14 posts.  The [:14] cap is a safety guard only.
+    Strategy: three posts per day (10:00 + 13:00 + 19:00) across all 7 days
+    starting Tuesday, giving exactly 21 slots.  The [:21] cap is a safety guard only.
     """
     schedule = []
     for day_offset in range(1, 8):  # Tuesday through Monday (7 days)
@@ -114,7 +114,7 @@ def _build_schedule(week_start: datetime) -> list[datetime]:
         for t in POST_TIMES:
             h, m = map(int, t.split(':'))
             schedule.append(day.replace(hour=h, minute=m, second=0, microsecond=0))
-    return schedule[:14]
+    return schedule[:21]
 
 
 def generate_weekly_posts(week_number: int, year: int, count: int = None, categories: list = None) -> list[dict]:
@@ -135,12 +135,15 @@ def generate_weekly_posts(week_number: int, year: int, count: int = None, catego
 
     # Build the pool: use provided categories or fall back to CATEGORY_MIX
     if categories:
-        # Cycle through selected categories to fill the requested count
-        pool = [categories[i % len(categories)] for i in range(len(CATEGORY_MIX))]
+        base = categories
     else:
-        pool = CATEGORY_MIX.copy()
+        base = CATEGORY_MIX.copy()
+
+    # Cycle the base pool to meet the requested count (or default to len(base))
+    target = count if count else len(base)
+    pool = [base[i % len(base)] for i in range(max(target, len(base)))]
     random.shuffle(pool)
-    n = min(count, len(pool)) if count else len(pool)
+    n = min(target, len(pool))
     categories = pool[:n]
     schedule = _build_schedule(week_start)[:n]
 
