@@ -8,6 +8,42 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# Per-category instructions for the "Blind Getrouwd" angle:
+# OpenVoor = the AI expert group that matches you on paper (anonymised data),
+# just like the show's experts — but across all life domains.
+BLIND_GETROUWD_ANGLES = {
+    'love': (
+        "Schrijf deze post vanuit het 'Blind Getrouwd'-perspectief: in die show beslissen experts wie bij wie past. "
+        "Bij OpenVoor.app doet AI dat — volledig op basis van wie je écht bent, zonder foto's of oppervlakkig swipen. "
+        "Verwijs speels naar het concept: 'onze expertengroep bestaat uit AI', 'op papier gematcht voordat je elkaar ziet', "
+        "'net als Blind Getrouwd maar dan zonder camera'. Houd de toon luchtig en herkenbaar."
+    ),
+    'friends': (
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-perspectief: wat als een AI-expertengroep "
+        "jou koppelt aan iemand die écht bij je past als vriend — op basis van gedeelde interesses, waarden en ritme? "
+        "Verwijs naar het idee van 'gematcht op papier' maar dan voor vriendschap. "
+        "Toon: herkenbaar, warm, lichtjes grappig over hoe moeilijk vrienden maken als volwassene is."
+    ),
+    'travel': (
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-perspectief: een AI-expertengroep matcht jou "
+        "met de perfecte reiscompanion op basis van reisritme, budget, interesses — niet op uiterlijk. "
+        "Verwijs naar het idee van 'blind op reis gaan met iemand die de experts voor jou kozen'. "
+        "Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
+    ),
+    'sports': (
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-perspectief: de AI-expertengroep koppelt "
+        "jou aan iemand met hetzelfde sportniveau, dezelfde motivatie en hetzelfde tijdsschema. "
+        "Verwijs naar 'gematcht op papier' maar dan voor de sportclub of het wandelpad. "
+        "Toon: energiek, motiverend, herkenbaar voor wie moeite heeft een sportmaatje te vinden."
+    ),
+    'parents': (
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-perspectief: de AI-expertengroep matcht ouders "
+        "met andere ouders in dezelfde levensfase — zelfde leeftijd kinderen, zelfde uitdagingen, zelfde waarden. "
+        "Verwijs naar 'op papier gematcht met een andere ouder die écht begrijpt hoe jij het aanpakt'. "
+        "Toon: herkenbaar, warm, een beetje self-aware over de chaos van het ouderschap."
+    ),
+}
+
 # Rotating USP taglines — one woven organically into each post
 TAGLINES = [
     "100% echte mensen — geen bots, geen nep",
@@ -78,6 +114,8 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     Each dict contains:
         category, copy_nl, hashtags, image_prompt, scheduled_at, week_number, year
     """
+    from apps.params.helpers import get_param
+
     client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     # Determine Monday of the requested ISO week
@@ -89,15 +127,23 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
     categories = CATEGORY_MIX.copy()
     random.shuffle(categories)
 
-    # Assign one rotating tagline per post
+    # Determine which posts get the "Blind Getrouwd" AI-expert angle
+    n_bg = get_param('content.blind_getrouwd_per_week', 4)
+    bg_indices = set(random.sample(range(len(categories)), min(n_bg, len(categories))))
+
+    # Assign one rotating tagline per post, plus optional BG angle
     tagged = [
         (categories[i], TAGLINES[i % len(TAGLINES)])
         for i in range(len(categories))
     ]
-    post_specs = "\n".join(
-        f"{i+1}. categorie: {cat} | tagline om te verwerken: \"{tag}\""
-        for i, (cat, tag) in enumerate(tagged)
-    )
+    post_specs_lines = []
+    for i, (cat, tag) in enumerate(tagged):
+        line = f"{i+1}. categorie: {cat} | tagline om te verwerken: \"{tag}\""
+        if i in bg_indices:
+            angle = BLIND_GETROUWD_ANGLES.get(cat, '')
+            line += f" | BLIND GETROUWD HOEK: {angle}"
+        post_specs_lines.append(line)
+    post_specs = "\n".join(post_specs_lines)
 
     user_prompt = (
         f"Genereer {len(categories)} sociale media posts voor de week van "
@@ -140,7 +186,6 @@ def generate_weekly_posts(week_number: int, year: int) -> list[dict]:
 
     # Pick N posts to receive a discount CTA
     from apps.content.services.cta_generator import generate_cta
-    from apps.params.helpers import get_param
     n_cta = get_param('engagement.discount_cta_per_week', 3)
     cta_indices = set(random.sample(range(len(posts_data)), min(n_cta, len(posts_data))))
 
