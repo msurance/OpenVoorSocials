@@ -10,9 +10,7 @@ jobs:
     steps:
       - name: Trigger Coolify deploy
         run: |
-          curl -s -X POST https://coolify.openvoor.app/api/v1/deploy \
+          curl -sf -X POST \
+            "https://coolify.openvoor.app/api/v1/deploy?token=${{ secrets.COOLIFY_WEBHOOK_SECRET }}&uuid=oxjluowiyhh02um1056wt1dp" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"uuid":"oxjluowiyhh02um1056wt1dp","force":false}' \
-            | tee /dev/stderr \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print('Queued:', d['deployments'][0]['deployment_uuid'])"
+            -H "Content-Type: application/json"
