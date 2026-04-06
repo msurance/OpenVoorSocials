@@ -8,42 +8,47 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Per-category instructions for the "Blind Getrouwd" angle:
-# OpenVoor = the AI expert group that matches you on paper (anonymised data),
-# just like the show's experts — but across all life domains.
+# Per-category instructions for the "expert matching" angle:
+# References the well-known TV genre (Blind Getrouwd, Love is Blind, Married at First Sight…)
+# without naming any specific show — avoids trademark issues while keeping full recognisability.
 BLIND_GETROUWD_ANGLES = {
     'love': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd'-gevoel. In die show beslist de expertengroep wie bij wie past "
-        "— op papier, op basis van persoonlijkheid en waarden, niet op uiterlijk. Bij OpenVoor is dat de AI-Expertengroep. "
-        "Gebruik die naam letterlijk: 'de AI-Expertengroep van OpenVoor', 'de AI-Expertengroep beslist wie bij wie past', "
-        "'net als in Blind Getrouwd, maar de expertengroep bestaat uit AI'. De nadruk ligt op de match en het gevoel — "
-        "gematcht op wie je écht bent — niet op de technologie zelf. Toon: luchtig, herkenbaar, een tikje spannend."
+        "Schrijf deze post vanuit het concept van tv-programma's waar een expertengroep mensen blind matcht op basis van "
+        "persoonlijkheid, waarden en levensvisie — niet op uiterlijk. Je ziet elkaar pas nadat de experts beslist hebben "
+        "dat jullie op papier bij elkaar passen. Bij OpenVoor is de AI-Expertengroep die expertengroep. "
+        "Verwijs naar het herkenbare genre zonder een specifieke show te noemen: 'zoals in die programma's waar experts "
+        "voor jou kiezen', 'blind gematcht op wie je écht bent', 'de AI-Expertengroep beslist — niet jouw foto'. "
+        "Toon: luchtig, herkenbaar, een tikje spannend."
     ),
     'friends': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-gevoel. De AI-Expertengroep van OpenVoor "
-        "koppelt jou aan iemand die écht bij je past als vriend — op basis van wie je bent, niet op je foto. "
-        "Gebruik 'de AI-Expertengroep' als naam, net zoals Blind Getrouwd zijn expertengroep heeft. "
-        "De nadruk ligt op het gevoel: eindelijk iemand gevonden via een match op papier, zonder eindeloos scrollen. "
-        "Toon: warm, herkenbaar, lichtjes grappig over hoe moeilijk vrienden maken als volwassene is."
+        "Schrijf deze post vanuit het concept van tv-programma's waar experts mensen blind koppelen op compatibiliteit "
+        "— maar dan voor vriendschap. De AI-Expertengroep van OpenVoor koppelt jou aan iemand die écht bij je past "
+        "als vriend: zelfde humor, zelfde tempo, zelfde interesses. Geen profielfoto's scrollen. "
+        "Verwijs naar het herkenbare genre zonder een specifieke show te noemen: 'zoals die programma's waar een "
+        "expertengroep voor jou kiest', 'blind gematcht op vriendschap'. "
+        "Toon: warm, herkenbaar, lichtjes grappig over hoe awkward vrienden maken als volwassene is."
     ),
     'travel': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-gevoel. De AI-Expertengroep van OpenVoor "
-        "koppelt jou aan de perfecte reisgezel op basis van hoe jij reist — tempo, budget, avontuurlijkheid. "
-        "Gebruik 'de AI-Expertengroep' als naam en verwijs naar het gevoel van 'blind op reis met iemand die perfect "
-        "op papier matcht'. Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
+        "Schrijf deze post vanuit het concept van tv-programma's waar experts mensen blind matchen — maar dan voor "
+        "reisgenoten. De AI-Expertengroep koppelt jou aan de perfecte reisgezel op basis van hoe jij reist: tempo, "
+        "budget, avontuurlijkheid. Verwijs naar het herkenbare genre zonder een specifieke show te noemen: "
+        "'zoals die programma's waar een expertengroep beslist wie bij wie past', 'blind op reis met iemand die "
+        "perfect op papier matcht'. Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
     ),
     'sports': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-gevoel. De AI-Expertengroep van OpenVoor "
-        "koppelt jou aan een sportmaatje dat écht bij je past — zelfde niveau, motivatie en tijdsschema. "
-        "Gebruik 'de AI-Expertengroep' als naam, net zoals in Blind Getrouwd. De nadruk ligt op de match, "
-        "niet op de technologie. Toon: energiek, motiverend, herkenbaar."
+        "Schrijf deze post vanuit het concept van tv-programma's waar experts mensen blind koppelen op compatibiliteit "
+        "— maar dan voor sportmaatjes. De AI-Expertengroep matcht jou aan iemand met hetzelfde sportniveau, dezelfde "
+        "motivatie en hetzelfde tijdsschema. Verwijs naar het herkenbare genre zonder een specifieke show te noemen: "
+        "'zoals die programma's waar een expertengroep voor jou kiest', 'blind gematcht op sportritme'. "
+        "Toon: energiek, motiverend, herkenbaar."
     ),
     'parents': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-gevoel. De AI-Expertengroep van OpenVoor "
-        "koppelt jou aan een andere ouder waarvan de kinderen in exact dezelfde levensfase zitten — zelfde leeftijd, "
-        "zelfde uitdagingen, zelfde vragen. Geen romantiek, geen dating — gewoon een andere ouder die écht begrijpt "
-        "hoe jij het aanpakt. Iemand om mee te wandelen met de buggy, samen naar het park te gaan, of gewoon te "
-        "ventileren over slaapgebrek. Gebruik 'de AI-Expertengroep' als naam. Toon: herkenbaar, warm, luchtig."
+        "Schrijf deze post vanuit het concept van tv-programma's waar experts mensen blind matchen op basis van wie ze "
+        "écht zijn — maar dan voor ouders. De AI-Expertengroep koppelt jou aan een andere ouder waarvan de kinderen in "
+        "exact dezelfde levensfase zitten. Geen romantiek — gewoon iemand die begrijpt hoe jij het aanpakt. "
+        "Verwijs naar het herkenbare genre zonder een specifieke show te noemen: 'zoals die programma's waar een "
+        "expertengroep matcht op papier, maar dan voor ouders', 'blind gematcht op levensfase'. "
+        "Toon: herkenbaar, warm, luchtig."
     ),
 }
 
