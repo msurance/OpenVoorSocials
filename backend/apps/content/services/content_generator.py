@@ -13,33 +13,35 @@ logger = logging.getLogger(__name__)
 # just like the show's experts — but across all life domains.
 BLIND_GETROUWD_ANGLES = {
     'love': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd'-perspectief: in die show beslissen experts wie bij wie past. "
-        "Bij OpenVoor.app doet AI dat — volledig op basis van wie je écht bent, zonder foto's of oppervlakkig swipen. "
-        "Verwijs speels naar het concept: 'onze expertengroep bestaat uit AI', 'op papier gematcht voordat je elkaar ziet', "
-        "'net als Blind Getrouwd maar dan zonder camera'. Houd de toon luchtig en herkenbaar."
+        "Schrijf deze post vanuit het 'Blind Getrouwd'-gevoel: in die show worden mensen gematcht op wie ze écht zijn "
+        "— persoonlijkheid, waarden, levensvisie — niet op uiterlijk. Bij OpenVoor werkt het net zo: je wordt gematcht "
+        "op basis van wie je bent, niet op je foto. Verwijs herkenbaar naar het concept zonder 'AI' te noemen: "
+        "'gematcht op papier', 'gekoppeld op wie je écht bent', 'net als in Blind Getrouwd maar dan voor het echte leven'. "
+        "De technologie is onzichtbaar — de match en het gevoel staan centraal."
     ),
     'friends': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-perspectief: wat als een AI-expertengroep "
-        "jou koppelt aan iemand die écht bij je past als vriend — op basis van gedeelde interesses, waarden en ritme? "
-        "Verwijs naar het idee van 'gematcht op papier' maar dan voor vriendschap. "
-        "Toon: herkenbaar, warm, lichtjes grappig over hoe moeilijk vrienden maken als volwassene is."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor vriendschappen'-gevoel: stel je voor dat iemand jou koppelt "
+        "aan een nieuwe vriend op basis van wie je écht bent — zelfde humor, zelfde tempo, zelfde interesses — "
+        "zonder dat je eerst door honderd profielfoto's moet scrollen. Dat is het Blind Getrouwd-gevoel, maar dan voor "
+        "vriendschap. Verwijs herkenbaar naar 'gematcht op papier' zonder de technologie te benoemen. "
+        "Toon: warm, herkenbaar, lichtjes grappig over hoe awkward vrienden maken als volwassene is."
     ),
     'travel': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-perspectief: een AI-expertengroep matcht jou "
-        "met de perfecte reiscompanion op basis van reisritme, budget, interesses — niet op uiterlijk. "
-        "Verwijs naar het idee van 'blind op reis gaan met iemand die de experts voor jou kozen'. "
-        "Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor reisgenoten'-gevoel: stel je voor dat iemand jou koppelt "
+        "aan de perfecte reisgezel op basis van hoe jij reist — zelfde tempo, zelfde budget, zelfde zin in avontuur. "
+        "Verwijs herkenbaar naar 'blind op reis met iemand die perfect bij je past op papier', zonder de technologie "
+        "te benoemen. Toon: avontuurlijk, nieuwsgierig, een tikje humoristisch."
     ),
     'sports': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-perspectief: de AI-expertengroep koppelt "
-        "jou aan iemand met hetzelfde sportniveau, dezelfde motivatie en hetzelfde tijdsschema. "
-        "Verwijs naar 'gematcht op papier' maar dan voor de sportclub of het wandelpad. "
-        "Toon: energiek, motiverend, herkenbaar voor wie moeite heeft een sportmaatje te vinden."
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor sportmaatjes'-gevoel: stel je voor dat iemand jou koppelt "
+        "aan een sportmaatje dat écht bij je past — zelfde niveau, zelfde motivatie, zelfde tijdsschema. "
+        "Verwijs herkenbaar naar 'gematcht op wie je bent als sporter' zonder de technologie te noemen. "
+        "Toon: energiek, motiverend, herkenbaar voor wie al eens zonder sportmaatje is gevallen."
     ),
     'parents': (
-        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-perspectief: de AI-expertengroep matcht ouders "
-        "met andere ouders in dezelfde levensfase — zelfde leeftijd kinderen, zelfde uitdagingen, zelfde waarden. "
-        "Verwijs naar 'op papier gematcht met een andere ouder die écht begrijpt hoe jij het aanpakt'. "
+        "Schrijf deze post vanuit het 'Blind Getrouwd voor ouders'-gevoel: stel je voor dat iemand jou koppelt "
+        "aan een andere ouder die écht in dezelfde situatie zit — zelfde levensfase, zelfde uitdagingen, zelfde aanpak. "
+        "Verwijs herkenbaar naar 'gematcht op wie je bent als ouder' zonder de technologie te benoemen. "
         "Toon: herkenbaar, warm, een beetje self-aware over de chaos van het ouderschap."
     ),
 }
