@@ -53,7 +53,7 @@ class Command(BaseCommand):
             post = SocialPost.objects.create(
                 category=data['category'],
                 platform='both',
-                status='draft',
+                status='approved',
                 copy_nl=data['copy_nl'],
                 hashtags=data['hashtags'],
                 image_prompt=data['image_prompt'],
