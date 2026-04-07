@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import anthropic
 from django.conf import settings
+from django.utils.timezone import make_aware
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,8 @@ def _build_schedule(week_start: datetime) -> list[datetime]:
         day = week_start + timedelta(days=day_offset)
         for t in POST_TIMES:
             h, m = map(int, t.split(':'))
-            schedule.append(day.replace(hour=h, minute=m, second=0, microsecond=0))
+            naive_dt = day.replace(hour=h, minute=m, second=0, microsecond=0, tzinfo=None)
+            schedule.append(make_aware(naive_dt))
     return schedule[:21]
 
 
