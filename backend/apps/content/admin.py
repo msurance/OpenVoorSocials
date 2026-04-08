@@ -119,6 +119,7 @@ class SocialPostAdmin(admin.ModelAdmin):
             path('resume-generation/', self.admin_site.admin_view(self.resume_generation_view), name='content_socialpost_resume_generation'),
             path('boost-post/', self.admin_site.admin_view(self.boost_post_view), name='content_socialpost_boost'),
             path('generate-from-date/', self.admin_site.admin_view(self.generate_from_date_view), name='content_socialpost_generate_from_date'),
+            path('publish-due-posts/', self.admin_site.admin_view(self.publish_due_posts_view), name='content_socialpost_publish_due'),
         ]
         return extra + urls
 
@@ -214,6 +215,30 @@ class SocialPostAdmin(admin.ModelAdmin):
         except Exception as exc:
             logger.error('Admin generate_content_view failed: %s', exc)
             self.message_user(request, f'Genereren mislukt: {exc}', messages.ERROR)
+        return HttpResponseRedirect('../')
+
+    def publish_due_posts_view(self, request):
+        """Manually trigger publish_due_posts — same logic as the cron job."""
+        from apps.publishing.management.commands.publish_due_posts import Command as PublishCmd
+        try:
+            PublishCmd().handle()
+            # Count what changed
+            from django.utils import timezone
+            now = timezone.now()
+            still_due = SocialPost.objects.filter(status='approved', scheduled_at__lte=now).count()
+            published_now = SocialPost.objects.filter(
+                status='published',
+                published_at__gte=now - timezone.timedelta(seconds=60),
+            ).count()
+            if published_now:
+                self.message_user(request, f'{published_now} post(s) gepubliceerd.', messages.SUCCESS)
+            elif still_due:
+                self.message_user(request, f'Geen posts gepubliceerd — {still_due} staan nog op "approved" (check de foutmeldingen).', messages.WARNING)
+            else:
+                self.message_user(request, 'Geen posts die nu gepubliceerd moeten worden.', messages.INFO)
+        except Exception as exc:
+            logger.error('publish_due_posts_view failed: %s', exc, exc_info=True)
+            self.message_user(request, f'Publiceren mislukt: {exc}', messages.ERROR)
         return HttpResponseRedirect('../')
 
     def generate_from_date_view(self, request):

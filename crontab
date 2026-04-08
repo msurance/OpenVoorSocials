@@ -7,5 +7,5 @@
 # Monday 8:35 — generate videos in parallel for any posts missing them (3 workers, ~8 min total)
 35 8 * * 1 cd /app && python manage.py generate_missing_videos --all 2>&1
 
-# Every 30 min — publish approved posts that are due
-*/30 * * * * cd /app && python manage.py publish_due_posts 2>&1
+# Every 5 min — publish approved posts that are due
+*/5 * * * * cd /app && python manage.py publish_due_posts 2>&1
