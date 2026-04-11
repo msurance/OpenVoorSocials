@@ -11,6 +11,7 @@ WORKDIR /app
 # ffmpeg only — libpq-dev/gcc not needed (psycopg2-binary is a pre-built wheel)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Supercronic bundled in repo — no GitHub download needed at build time
