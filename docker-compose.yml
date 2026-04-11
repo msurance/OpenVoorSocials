@@ -14,6 +14,7 @@ services:
              python manage.py migrate --noinput &&
              python manage.py createsuperuser --noinput 2>/dev/null || true &&
              python manage.py generate_missing_images &
+             (while true; do python manage.py publish_due_posts; sleep 300; done) &
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
     env_file: .env
     environment:
@@ -22,20 +23,6 @@ services:
       - media_data:/app/media
     ports:
       - "5005:8000"
-
-  cron:
-    image: openvoorsocials:latest
-    restart: unless-stopped
-    command: >
-      sh -c "until python -c \"import psycopg2, os; psycopg2.connect(os.environ['DATABASE_URL']); print('DB ready')\" 2>/dev/null; do sleep 2; done &&
-             supercronic /app/crontab"
-    env_file: .env
-    environment:
-      DJANGO_SETTINGS_MODULE: config.settings.production
-    volumes:
-      - media_data:/app/media
-    depends_on:
-      - backend
 
 volumes:
   media_data:
