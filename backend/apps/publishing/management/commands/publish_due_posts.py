@@ -15,23 +15,23 @@ class Command(BaseCommand):
     help = 'Publish approved posts whose scheduled_at is in the past'
 
     def handle(self, *args, **options):
+        from apps.params.models import CronLog
+
         now = timezone.now()
+        published_count = 0
+        failed_count = 0
+        notes = []
 
         # Recovery: posts stuck with status='published' but published_at=None were
-        # mid-flight when the server restarted (the thread was killed after the initial
-        # status save but before the final save with IDs). Reset them to 'approved' so
-        # this run picks them up.
+        # mid-flight when the server restarted.  Reset them so this run re-tries.
         stuck = SocialPost.objects.filter(status='published', published_at__isnull=True)
         stuck_count = stuck.count()
         if stuck_count:
             stuck.update(status='approved')
-            logger.warning(
-                "Recovered %d post(s) stuck in mid-publish state (server restart?) → reset to approved",
-                stuck_count,
-            )
+            msg = f"Recovered {stuck_count} stuck post(s) → reset to approved"
+            logger.warning(msg)
+            notes.append(msg)
 
-        # select_for_update(skip_locked=True) ensures that if two cron invocations
-        # overlap they each grab a non-overlapping set of rows — no double-publishes.
         with transaction.atomic():
             due_posts = list(
                 SocialPost.objects.select_for_update(skip_locked=True).filter(
@@ -41,25 +41,23 @@ class Command(BaseCommand):
             )
 
         if not due_posts:
+            CronLog.objects.create(posts_due=0, posts_published=0, posts_failed=0, notes='no posts due')
             self.stdout.write("No posts due for publishing.")
             return
 
         self.stdout.write(f"Found {len(due_posts)} post(s) to publish.")
 
         for post in due_posts:
-            self.stdout.write(f"Publishing: {post}")
+            self.stdout.write(f"Publishing: {post.id} scheduled={post.scheduled_at}")
             errors = []
 
             with transaction.atomic():
-                # Re-lock the individual row before mutating to stay safe
-                # even if the outer queryset was collected outside atomic.
                 locked_post = (
                     SocialPost.objects.select_for_update(skip_locked=True)
                     .filter(pk=post.pk, status='approved')
                     .first()
                 )
                 if locked_post is None:
-                    # Another process already claimed this post
                     logger.info("Post %s no longer available — skipping.", post.pk)
                     continue
 
@@ -67,32 +65,31 @@ class Command(BaseCommand):
                     try:
                         fb_id = publish_to_facebook(locked_post)
                         locked_post.facebook_post_id = fb_id
+                        logger.info("Facebook OK for post %s: %s", locked_post.id, fb_id)
                     except Exception as exc:
-                        logger.error(
-                            "Facebook publish failed for %s: %s", locked_post.id, exc,
-                            exc_info=True,
-                        )
+                        logger.error("Facebook publish failed for %s: %s", locked_post.id, exc, exc_info=True)
                         errors.append(f"Facebook: {exc}")
 
                 if locked_post.platform in ('instagram', 'both'):
                     try:
                         ig_id = publish_to_instagram(locked_post)
                         locked_post.instagram_post_id = ig_id
+                        logger.info("Instagram OK for post %s: %s", locked_post.id, ig_id)
                     except Exception as exc:
-                        logger.error(
-                            "Instagram publish failed for %s: %s", locked_post.id, exc,
-                            exc_info=True,
-                        )
+                        logger.error("Instagram publish failed for %s: %s", locked_post.id, exc, exc_info=True)
                         errors.append(f"Instagram: {exc}")
 
                 if errors:
                     locked_post.status = 'failed'
                     locked_post.error_message = '\n'.join(errors)
+                    failed_count += 1
+                    notes.append(f"FAILED {locked_post.id}: {'; '.join(errors)}")
                     self.stdout.write(self.style.ERROR(f"  FAILED: {errors}"))
                 else:
                     locked_post.status = 'published'
                     locked_post.published_at = now
                     locked_post.error_message = ''
+                    published_count += 1
                     self.stdout.write(self.style.SUCCESS("  Published OK"))
 
                 locked_post.save(update_fields=[
@@ -103,4 +100,10 @@ class Command(BaseCommand):
                     'error_message',
                 ])
 
-        self.stdout.write("Publish run complete.")
+        CronLog.objects.create(
+            posts_due=len(due_posts),
+            posts_published=published_count,
+            posts_failed=failed_count,
+            notes='\n'.join(notes),
+        )
+        self.stdout.write(f"Publish run complete. published={published_count} failed={failed_count}")

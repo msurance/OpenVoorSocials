@@ -2,7 +2,25 @@ from django import forms
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from apps.params.models import AppParameter, AppDocument
+from apps.params.models import AppParameter, AppDocument, CronLog
+
+
+@admin.register(CronLog)
+class CronLogAdmin(admin.ModelAdmin):
+    list_display = ('ran_at', 'posts_due', 'posts_published', 'posts_failed', 'notes_preview')
+    list_filter = ('posts_failed',)
+    ordering = ('-ran_at',)
+    readonly_fields = ('ran_at', 'posts_due', 'posts_published', 'posts_failed', 'notes')
+
+    @admin.display(description='Notes')
+    def notes_preview(self, obj):
+        return (obj.notes or '')[:120] or '—'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(AppParameter)
