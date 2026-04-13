@@ -97,7 +97,14 @@ Belangrijk voor image_prompt:
 - Varieer de setting sterk tussen posts: café, park, bos, stadsplein, strand, markt, sportclub, woonkamer, terras, museum, bibliotheek, etc.
 - Beschrijf ALLEEN volwassenen (minimum 18 jaar) — geen kinderen, geen baby's.
 - Varieer de leeftijd actief: ook regelmatig mensen van 60-75 jaar. Gebruik NIET standaard jonge mensen.
-- Voor de categorie 'parents': toon twee of meer volwassenen (de ouders) samen in een gezinscontext — wandelen met een buggy, op een speelplein, in een park. Kinderen mogen zichtbaar zijn maar zijn nooit het hoofdonderwerp. De verbinding tussen de ouders staat centraal.
+
+UITERST BELANGRIJK — variatie in mensen:
+- De mensen op de foto mogen NOOIT op elkaar lijken. Beschrijf altijd EXPLICIET verschillende uiterlijke kenmerken: haarkleur (blond, bruin, rood, grijs, zwart), haarlengtelengte, huidskleur, lichaamsbouw, kledingstijl. Schrijf dit letterlijk uit in de prompt.
+- Voor 'friends' en 'sports': wissel actief af tussen gemengde groepen (man+vrouw), twee mannen, twee vrouwen. Niet altijd hetzelfde. Specificeer altijd het geslacht expliciet in de prompt.
+- Voor 'love': kan man+vrouw, man+man of vrouw+vrouw zijn — wissel af over de weken.
+- Voor 'travel': groepen of duo's, gemengd of niet — varieer.
+- Voor 'parents': twee volwassenen die duidelijk van elkaar verschillen qua uiterlijk — beschrijf beiden apart.
+- Voeg altijd toe: "The two people look completely different from each other — different hair color, different build, different style."
 - De foto moet realistisch en authentiek aanvoelen, Belgische setting.
 """
 
