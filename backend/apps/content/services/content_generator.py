@@ -104,6 +104,7 @@ UITERST BELANGRIJK — variatie in mensen:
 - Voor 'love': kan man+vrouw, man+man of vrouw+vrouw zijn — wissel af over de weken.
 - Voor 'travel': groepen of duo's, gemengd of niet — varieer.
 - Voor 'parents': twee volwassenen die duidelijk van elkaar verschillen qua uiterlijk — beschrijf beiden apart.
+- Huidskleur: overwegend blank/Kaukasisch, zoals gebruikelijk in België — dit is de norm, niet de uitzondering. Af en toe diversiteit is prima maar niet de standaard.
 - Voeg altijd toe: "The two people look completely different from each other — different hair color, different build, different style."
 - De foto moet realistisch en authentiek aanvoelen, Belgische setting.
 """
