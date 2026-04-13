@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import logging
+import time
 from datetime import date, timedelta, timezone, datetime
 
 import requests
@@ -30,6 +31,23 @@ def _get_targeting() -> dict:
         "age_min": get_param('boost.age_min', 25),
         "age_max": get_param('boost.age_max', 65),
     }
+
+
+def _post_with_retry(url: str, data: dict, retries: int = 3, delay: float = 3.0) -> dict:
+    """POST to Graph API, retrying on transient errors (code 2 / 500)."""
+    for attempt in range(1, retries + 1):
+        resp = requests.post(url, data=data, timeout=30)
+        body = resp.json()
+        err = body.get('error', {})
+        if resp.ok:
+            return body
+        if err.get('is_transient') or err.get('code') == 2:
+            logger.warning("Transient Graph API error on attempt %d/%d: %s", attempt, retries, err.get('message'))
+            if attempt < retries:
+                time.sleep(delay)
+                continue
+        resp.raise_for_status()
+    return body  # unreachable but satisfies linter
 
 
 def _proof(token: str) -> str:
@@ -75,7 +93,7 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     post_name = f"OpenVoor boost — {post.get_category_display()} {post.scheduled_at:%d/%m/%Y}"
 
     # 1. Campaign — OUTCOME_AWARENESS (ODAX)
-    campaign_resp = requests.post(
+    campaign_data = _post_with_retry(
         f"{GRAPH_API_BASE}/{ad_account}/campaigns",
         data={
             "name": post_name,
@@ -86,16 +104,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "access_token": token,
             "appsecret_proof": proof,
         },
-        timeout=30,
     )
-    if not campaign_resp.ok:
-        logger.error("Boost campaign creation failed: %s", campaign_resp.text)
-        campaign_resp.raise_for_status()
-    campaign_id = campaign_resp.json()["id"]
+    campaign_id = campaign_data["id"]
     logger.info("Boost campaign created: %s", campaign_id)
 
     # 2. AdSet — REACH, city list, Facebook + Instagram placements
-    adset_resp = requests.post(
+    adset_data = _post_with_retry(
         f"{GRAPH_API_BASE}/{ad_account}/adsets",
         data={
             "name": post_name,
@@ -117,16 +131,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "access_token": token,
             "appsecret_proof": proof,
         },
-        timeout=30,
     )
-    if not adset_resp.ok:
-        logger.error("Boost adset creation failed: %s", adset_resp.text)
-        adset_resp.raise_for_status()
-    adset_id = adset_resp.json()["id"]
+    adset_id = adset_data["id"]
     logger.info("Boost adset created: %s", adset_id)
 
-    # 3. AdCreative — references the existing page post or reel
-    creative_resp = requests.post(
+    # 3. AdCreative — references the existing page post (PAGE_ID_POST_ID format)
+    creative_data = _post_with_retry(
         f"{GRAPH_API_BASE}/{ad_account}/adcreatives",
         data={
             "name": post_name,
@@ -134,16 +144,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "access_token": token,
             "appsecret_proof": proof,
         },
-        timeout=30,
     )
-    if not creative_resp.ok:
-        logger.error("Boost creative creation failed: %s", creative_resp.text)
-        creative_resp.raise_for_status()
-    creative_id = creative_resp.json()["id"]
+    creative_id = creative_data["id"]
     logger.info("Boost creative created: %s", creative_id)
 
     # 4. Ad
-    ad_resp = requests.post(
+    ad_data = _post_with_retry(
         f"{GRAPH_API_BASE}/{ad_account}/ads",
         data={
             "name": post_name,
@@ -153,12 +159,8 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
             "access_token": token,
             "appsecret_proof": proof,
         },
-        timeout=30,
     )
-    if not ad_resp.ok:
-        logger.error("Boost ad creation failed: %s", ad_resp.text)
-        ad_resp.raise_for_status()
-    ad_id = ad_resp.json()["id"]
+    ad_id = ad_data["id"]
     logger.info("Boost ad created: %s for post %s", ad_id, post.id)
 
     return {"campaign_id": campaign_id, "adset_id": adset_id, "ad_id": ad_id}
