@@ -56,10 +56,12 @@ def boost_post(post, daily_budget_eur: float, days: int) -> dict:
     ad_account = settings.FACEBOOK_AD_ACCOUNT_ID
     page_id = settings.FACEBOOK_PAGE_ID
 
-    # Prefer reel; fall back to regular post
-    story_id = post.facebook_reel_id or post.facebook_post_id
+    # Use facebook_post_id (PAGE_ID_POST_ID format) — this is the page story ID
+    # that the Ads API accepts for object_story_id.
+    # facebook_reel_id is a standalone video object ID and cannot be boosted directly.
+    story_id = post.facebook_post_id
     if not story_id:
-        raise ValueError(f"Post {post.id} has no facebook_reel_id or facebook_post_id — publish it first")
+        raise ValueError(f"Post {post.id} has no facebook_post_id — publish it first")
 
     # Unix timestamp avoids the '+' URL-encoding issue with ISO format
     end_ts = int(

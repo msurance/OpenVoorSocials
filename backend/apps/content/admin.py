@@ -399,8 +399,11 @@ class SocialPostAdmin(admin.ModelAdmin):
                         ])
                         logger.info("Boost started for post %s — campaign %s", post_id, result['campaign_id'])
                     except Exception as exc:
-                        logger.error("Boost failed for post %s: %s", post_id, exc)
-                        SocialPost.objects.filter(id=post_id).update(boost_status='failed')
+                        logger.error("Boost failed for post %s: %s", post_id, exc, exc_info=True)
+                        SocialPost.objects.filter(id=post_id).update(
+                            boost_status='failed',
+                            error_message=f"Boost: {exc}",
+                        )
 
             threading.Thread(target=_boost, args=(post_ids, daily_budget, days), daemon=False).start()
             self.message_user(
