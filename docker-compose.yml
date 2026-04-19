@@ -15,6 +15,7 @@ services:
              python manage.py createsuperuser --noinput 2>/dev/null || true &&
              python manage.py generate_missing_images &
              (while true; do python manage.py publish_due_posts; sleep 300; done) &
+             (while true; do python manage.py generate_weekly_content; sleep 86400; done) &
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
     env_file: .env
     environment:
