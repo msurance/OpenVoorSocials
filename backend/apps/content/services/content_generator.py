@@ -99,12 +99,12 @@ Belangrijk voor image_prompt:
 - Varieer de leeftijd actief: ook regelmatig mensen van 60-75 jaar. Gebruik NIET standaard jonge mensen.
 
 UITERST BELANGRIJK — variatie in mensen:
-- De mensen op de foto mogen NOOIT op elkaar lijken. Beschrijf altijd EXPLICIET verschillende uiterlijke kenmerken: haarkleur (blond, bruin, rood, grijs, zwart), haarlengtelengte, huidskleur, lichaamsbouw, kledingstijl. Schrijf dit letterlijk uit in de prompt.
+- De mensen op de foto mogen NOOIT op elkaar lijken. Beschrijf altijd EXPLICIET verschillende uiterlijke kenmerken: haarkleur (blond, bruin, rood, grijs, zwart), haarlengte, lichaamsbouw, kledingstijl. Schrijf dit letterlijk uit in de prompt.
 - Voor 'friends' en 'sports': wissel actief af tussen gemengde groepen (man+vrouw), twee mannen, twee vrouwen. Niet altijd hetzelfde. Specificeer altijd het geslacht expliciet in de prompt.
 - Voor 'love': kan man+vrouw, man+man of vrouw+vrouw zijn — wissel af over de weken.
 - Voor 'travel': groepen of duo's, gemengd of niet — varieer.
 - Voor 'parents': twee volwassenen die duidelijk van elkaar verschillen qua uiterlijk — beschrijf beiden apart.
-- Voeg altijd toe: "The two people look completely different from each other — different hair color, different build, different style, different skin tone."
+- HUIDSKLEUR: het doelpubliek is Belgisch en overwegend Kaukasisch. Gebruik standaard lichte huidskleur (blank). Voeg altijd toe: "The two people look completely different from each other — different hair color, different build, different style." Geen interraciale koppels of groepen tenzij het organisch past.
 - De foto moet realistisch en authentiek aanvoelen, Belgische setting.
 """
 
