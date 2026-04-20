@@ -6,7 +6,7 @@ DEBUG = False
 
 SECRET_KEY = os.environ['SECRET_KEY']
 
-ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS', 'social.open4.app')]
+ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS', 'social.open4.app'), 'localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
     f"https://{os.environ.get('ALLOWED_HOSTS', 'social.open4.app')}",

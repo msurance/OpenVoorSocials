@@ -49,6 +49,23 @@ def _publish_ig_image(ig_user_id, image_url, caption, token, proof, post_id):
     r.raise_for_status()
     creation_id = r.json()["id"]
 
+    # Poll until container is ready (images process quickly but not instantly)
+    for _ in range(12):
+        time.sleep(5)
+        status_r = requests.get(
+            f"{GRAPH_API_BASE}/{creation_id}",
+            params={"fields": "status_code", "access_token": token, "appsecret_proof": proof},
+            timeout=15,
+        )
+        status_code = status_r.json().get("status_code")
+        logger.info("Image container status: %s (post %s)", status_code, post_id)
+        if status_code == "FINISHED":
+            break
+        if status_code == "ERROR":
+            raise RuntimeError(f"Instagram image container failed for post {post_id}")
+    else:
+        raise TimeoutError(f"Instagram image container timed out for post {post_id}")
+
     pub = requests.post(
         f"{GRAPH_API_BASE}/{ig_user_id}/media_publish",
         data={"creation_id": creation_id, "access_token": token, "appsecret_proof": proof},
