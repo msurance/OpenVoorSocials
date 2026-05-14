@@ -11,6 +11,6 @@ jobs:
       - name: Trigger Coolify deploy
         run: |
           curl -sf -X POST \
-            "https://coolify.openvoor.app/api/v1/deploy?token=${{ secrets.COOLIFY_WEBHOOK_SECRET }}&uuid=oxjluowiyhh02um1056wt1dp" \
+            "https://coolify.msurance.app/api/v1/deploy?token=${{ secrets.COOLIFY_WEBHOOK_SECRET }}&uuid=oxjluowiyhh02um1056wt1dp" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json"
