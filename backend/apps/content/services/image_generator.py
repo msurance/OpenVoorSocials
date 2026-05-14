@@ -24,7 +24,10 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int,
     Also saves a raw (unbranded) backup as uuid_raw.png for clean Kling AI input.
     Returns the relative path within MEDIA_ROOT, e.g. 'posts/2026/14/uuid.png'.
     """
-    client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+    client = genai.Client(
+        api_key=settings.GOOGLE_API_KEY,
+        http_options=types.HttpOptions(timeout=90),
+    )
 
     full_prompt = f"{image_prompt}. {STYLE_SUFFIX}"
 

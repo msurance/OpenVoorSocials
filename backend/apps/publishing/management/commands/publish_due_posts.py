@@ -61,6 +61,11 @@ class Command(BaseCommand):
                     logger.info("Post %s no longer available — skipping.", post.pk)
                     continue
 
+                if not locked_post.image_path:
+                    logger.warning("Post %s has no image yet — skipping until image is ready.", locked_post.id)
+                    notes.append(f"SKIPPED {locked_post.id}: no image")
+                    continue
+
                 if locked_post.platform in ('facebook', 'both'):
                     try:
                         fb_id = publish_to_facebook(locked_post)
