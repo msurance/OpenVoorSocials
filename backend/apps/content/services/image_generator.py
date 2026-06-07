@@ -34,7 +34,7 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int,
     logger.info("Generating image for post %s (category=%s)", post_id, category)
 
     result = client.models.generate_images(
-        model="imagen-4.0-generate-001",
+        model="imagen-3.0-generate-002",
         prompt=full_prompt,
         config=types.GenerateImagesConfig(
             number_of_images=1,
