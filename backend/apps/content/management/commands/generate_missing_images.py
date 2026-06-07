@@ -23,6 +23,8 @@ class Command(BaseCommand):
         parser.add_argument('--workers', type=int, default=_MAX_WORKERS)
 
     def handle(self, *args, **options):
+        from apps.params.models import CronLog
+
         qs = SocialPost.objects.exclude(image_prompt='')
         if options['week']:
             qs = qs.filter(week_number=options['week'])
@@ -45,6 +47,8 @@ class Command(BaseCommand):
         workers = options['workers']
         self.stdout.write(f'Generating images for {len(missing)} posts (workers={workers})...')
 
+        quota_exhausted = False
+
         def _generate(post):
             django.db.connections.close_all()
             try:
@@ -54,19 +58,44 @@ class Command(BaseCommand):
                 SocialPost.objects.filter(id=post.id).update(image_path=relative_path)
                 return post.id, None
             except Exception as exc:
-                logger.error('Image generation failed for %s: %s', post.id, exc)
                 return post.id, exc
 
-        ok = fail = 0
+        ok = fail = quota_hits = 0
+        notes = []
+
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {pool.submit(_generate, p): p for p in missing}
             for future in as_completed(futures):
                 post_id, exc = future.result()
-                if exc:
-                    self.stdout.write(self.style.ERROR(f'  [FAIL] {post_id}: {exc}'))
-                    fail += 1
-                else:
+                if exc is None:
                     self.stdout.write(self.style.SUCCESS(f'  [OK] {post_id}'))
                     ok += 1
+                else:
+                    err_str = str(exc)
+                    if '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str or 'quota' in err_str.lower():
+                        quota_hits += 1
+                        if not quota_exhausted:
+                            quota_exhausted = True
+                            msg = f'QUOTA EXHAUSTED after {ok} images — {len(missing) - ok} still pending'
+                            logger.warning(msg)
+                            self.stdout.write(self.style.ERROR(f'  [QUOTA] {msg}'))
+                            notes.append(msg)
+                            # Cancel remaining futures — no point burning more quota attempts
+                            for f in futures:
+                                f.cancel()
+                    else:
+                        logger.error('Image generation failed for %s: %s', post_id, exc)
+                        self.stdout.write(self.style.ERROR(f'  [FAIL] {post_id}: {exc}'))
+                        notes.append(f'FAIL {post_id}: {err_str[:120]}')
+                        fail += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Done. {ok} OK, {fail} failed.'))
+        summary = f'images: {ok} OK, {fail} failed, {quota_hits} quota-blocked, {len(missing)-ok-fail} pending'
+        self.stdout.write(self.style.SUCCESS(f'Done. {summary}'))
+        logger.info('generate_missing_images: %s', summary)
+
+        CronLog.objects.create(
+            posts_due=len(missing),
+            posts_published=ok,
+            posts_failed=fail + quota_hits,
+            notes=f'[image-gen] {summary}' + (('\n' + '\n'.join(notes)) if notes else ''),
+        )
