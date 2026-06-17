@@ -66,7 +66,12 @@ class Command(BaseCommand):
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {pool.submit(_generate, p): p for p in missing}
             for future in as_completed(futures):
-                post_id, exc = future.result()
+                try:
+                    post_id, exc = future.result()
+                except Exception:
+                    # Future was cancelled (quota abort) — count as quota-blocked
+                    quota_hits += 1
+                    continue
                 if exc is None:
                     self.stdout.write(self.style.SUCCESS(f'  [OK] {post_id}'))
                     ok += 1
