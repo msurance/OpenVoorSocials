@@ -1,5 +1,5 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
 from pathlib import Path
 
 import django.db
@@ -67,7 +67,12 @@ class Command(BaseCommand):
             futures = {pool.submit(_generate, p): p for p in missing}
             for future in as_completed(futures):
                 try:
-                    post_id, exc = future.result()
+                    post_id, exc = future.result(timeout=300)  # 5-min hard cap per image
+                except FutureTimeout:
+                    quota_hits += 1
+                    logger.error('Image generation timed out (>5min) — treating as failure')
+                    notes.append('TIMEOUT: image generation hung for >5min')
+                    continue
                 except Exception:
                     # Future was cancelled (quota abort) — count as quota-blocked
                     quota_hits += 1
