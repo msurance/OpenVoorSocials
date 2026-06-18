@@ -11,7 +11,7 @@ from apps.content.services.image_generator import generate_image
 
 logger = logging.getLogger(__name__)
 
-_MAX_WORKERS = 4
+_MAX_WORKERS = 2
 
 
 class Command(BaseCommand):
