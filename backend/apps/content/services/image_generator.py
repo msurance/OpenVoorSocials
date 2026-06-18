@@ -26,7 +26,7 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int,
     """
     client = genai.Client(
         api_key=settings.GOOGLE_API_KEY,
-        http_options=types.HttpOptions(timeout=600),
+        http_options=types.HttpOptions(timeout=600_000),  # 600s — SDK uses ms
     )
 
     full_prompt = f"{image_prompt}. {STYLE_SUFFIX}"
