@@ -101,7 +101,7 @@ Belangrijk voor image_prompt:
 UITERST BELANGRIJK — variatie in mensen:
 - De mensen op de foto mogen NOOIT op elkaar lijken. Beschrijf altijd EXPLICIET verschillende uiterlijke kenmerken: haarkleur (blond, bruin, rood, grijs, zwart), haarlengte, lichaamsbouw, kledingstijl. Schrijf dit letterlijk uit in de prompt.
 - Voor 'friends' en 'sports': wissel actief af tussen gemengde groepen (man+vrouw), twee mannen, twee vrouwen. Niet altijd hetzelfde. Specificeer altijd het geslacht expliciet in de prompt.
-- Voor 'love': kan man+vrouw, man+man of vrouw+vrouw zijn — wissel af over de weken.
+- Voor 'love': wissel af tussen twee beeldtypes — ongeveer de helft toont een SINGLE persoon (iemand die alleen is, droomt, klaarstoomt of hoopvol uitkijkt naar liefde) en de andere helft toont een KOPPEL in een romantische ontmoeting of samenzijn (eerste date, knuffelend op een bankje, samen wandelen, romantisch diner). Specificeer altijd het geslacht: man+vrouw, man+man of vrouw+vrouw — wissel af. Bij een koppel: beschrijf beiden apart (uiterlijk, kleding).
 - Voor 'travel': groepen of duo's, gemengd of niet — varieer.
 - Voor 'parents': twee volwassenen die duidelijk van elkaar verschillen qua uiterlijk — beschrijf beiden apart.
 - HUIDSKLEUR: het doelpubliek is Belgisch en overwegend Kaukasisch. Gebruik standaard lichte huidskleur (blank). Voeg altijd toe: "The two people look completely different from each other — different hair color, different build, different style." Geen interraciale koppels of groepen tenzij het organisch past.
