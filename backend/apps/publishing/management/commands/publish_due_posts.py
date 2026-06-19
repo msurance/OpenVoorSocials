@@ -68,18 +68,20 @@ class Command(BaseCommand):
 
                 if locked_post.platform in ('facebook', 'both'):
                     try:
-                        fb_id = publish_to_facebook(locked_post)
-                        locked_post.facebook_post_id = fb_id
-                        logger.info("Facebook OK for post %s: %s", locked_post.id, fb_id)
+                        fb_post_id, fb_reel_id = publish_to_facebook(locked_post)
+                        locked_post.facebook_post_id = fb_post_id
+                        locked_post.facebook_reel_id = fb_reel_id
+                        logger.info("Facebook OK for post %s: post=%s reel=%s", locked_post.id, fb_post_id, fb_reel_id or 'none')
                     except Exception as exc:
                         logger.error("Facebook publish failed for %s: %s", locked_post.id, exc, exc_info=True)
                         errors.append(f"Facebook: {exc}")
 
                 if locked_post.platform in ('instagram', 'both'):
                     try:
-                        ig_id = publish_to_instagram(locked_post)
-                        locked_post.instagram_post_id = ig_id
-                        logger.info("Instagram OK for post %s: %s", locked_post.id, ig_id)
+                        ig_post_id, ig_reel_id = publish_to_instagram(locked_post)
+                        locked_post.instagram_post_id = ig_post_id
+                        locked_post.instagram_reel_id = ig_reel_id
+                        logger.info("Instagram OK for post %s: post=%s reel=%s", locked_post.id, ig_post_id, ig_reel_id or 'none')
                     except Exception as exc:
                         logger.error("Instagram publish failed for %s: %s", locked_post.id, exc, exc_info=True)
                         errors.append(f"Instagram: {exc}")
@@ -101,7 +103,9 @@ class Command(BaseCommand):
                     'status',
                     'published_at',
                     'facebook_post_id',
+                    'facebook_reel_id',
                     'instagram_post_id',
+                    'instagram_reel_id',
                     'error_message',
                 ])
 

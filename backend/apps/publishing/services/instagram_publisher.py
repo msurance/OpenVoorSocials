@@ -34,7 +34,7 @@ def publish_to_instagram(post) -> str:
         except Exception as exc:
             logger.error("Instagram Reel failed for post %s (image still published): %s", post.id, exc)
 
-    return ','.join(filter(None, [image_id, reel_id]))
+    return image_id, reel_id
 
 
 def _publish_ig_image(ig_user_id, image_url, caption, token, proof, post_id):

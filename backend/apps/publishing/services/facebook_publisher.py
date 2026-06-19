@@ -101,13 +101,13 @@ def publish_to_facebook(post) -> str:
 
     # Also publish as Reel if video exists
     reel_id = ''
-    if post.video_path and post.video_url:
+    if post.video_path:
         try:
             reel_id = _publish_fb_reel(token, proof, page_id, post)
         except Exception as exc:
             logger.error("Facebook Reel failed for post %s (feed post still published): %s", post.id, exc)
 
-    return ','.join(filter(None, [post_id, reel_id]))
+    return post_id, reel_id
 
 
 def _publish_fb_reel(token, proof, page_id, post):
@@ -132,8 +132,10 @@ def _publish_fb_reel(token, proof, page_id, post):
     video_id = init_resp.json()["video_id"]
     upload_url = init_resp.json()["upload_url"]
 
-    # Step 2: Upload video bytes
-    video_bytes = requests.get(post.video_url, timeout=60).content
+    # Step 2: Upload video bytes — read from local disk to avoid hairpin routing through Cloudflare
+    from pathlib import Path
+    from django.conf import settings as django_settings
+    video_bytes = (Path(django_settings.MEDIA_ROOT) / post.video_path).read_bytes()
     upload_resp = requests.post(
         upload_url,
         headers={
