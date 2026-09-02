@@ -62,13 +62,14 @@ TAGLINES = [
     "AI-matching op volledig geanonimiseerde data — de app leert jou kennen, niet je profiel",
 ]
 
-# 12 posts per week — balanced across 5 categories (no klusjes)
+# 21 posts per week — 3 per day, all 7 days — balanced across 5 categories (no klusjes).
+# Keeps the previous ratio: love stays exactly one third of the week.
 CATEGORY_MIX = [
-    'love', 'love', 'love', 'love',
-    'friends', 'friends',
-    'travel', 'travel',
-    'sports', 'sports',
-    'parents', 'parents',
+    'love', 'love', 'love', 'love', 'love', 'love', 'love',
+    'friends', 'friends', 'friends', 'friends',
+    'travel', 'travel', 'travel', 'travel',
+    'sports', 'sports', 'sports',
+    'parents', 'parents', 'parents',
 ]
 
 # Three publishing slots per day — gives 21 slots per week (enough headroom for any count)

@@ -15,7 +15,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--week', type=int, help='ISO week number to generate (default: next week)')
         parser.add_argument('--year', type=int, help='Year for the target week')
-        parser.add_argument('--count', type=int, default=None, help='Number of posts to generate (default: 12)')
+        parser.add_argument('--count', type=int, default=None, help='Number of posts to generate (default: 21 — 3/day, 7 days)')
         parser.add_argument('--categories', type=str, default=None, help='Comma-separated categories to include (default: all)')
         parser.add_argument('--force', action='store_true', help='Skip idempotency guard and generate even if posts already exist')
 
