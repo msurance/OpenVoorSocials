@@ -1,3 +1,4 @@
+import io
 import logging
 from pathlib import Path
 
@@ -10,6 +11,12 @@ from apps.content.services.branding import apply_image_branding
 
 logger = logging.getLogger(__name__)
 
+# Google retired the standalone Imagen endpoint on this API tier (404 NOT_FOUND on
+# imagen-4.0-generate-001 since 2026-08-29).  Gemini-native image generation is the
+# replacement: generate_content with response_modalities=["IMAGE"].
+# TODO: gemini-3.1-flash-image is ~cheaper if the weekly image bill matters more than fidelity.
+IMAGE_MODEL = "gemini-3-pro-image"
+
 STYLE_SUFFIX = (
     "Warm lifestyle photography, realistic, natural lighting, "
     "teal and navy color accents, Belgian urban or nature setting, "
@@ -18,9 +25,27 @@ STYLE_SUFFIX = (
 )
 
 
+def _extract_image_bytes(result) -> bytes:
+    """Pull the first inline image out of a generate_content response."""
+    candidates = result.candidates or []
+    for candidate in candidates:
+        for part in (candidate.content.parts or []) if candidate.content else []:
+            if part.inline_data and part.inline_data.data:
+                return part.inline_data.data
+    # No image: almost always a safety block or a text-only refusal — surface why.
+    finish = candidates[0].finish_reason if candidates else 'no candidates'
+    texts = [
+        part.text
+        for candidate in candidates
+        for part in (candidate.content.parts or []) if candidate.content
+        if part.text
+    ]
+    raise RuntimeError(f"{IMAGE_MODEL} returned no image (finish_reason={finish}): {' '.join(texts)[:200]}")
+
+
 def generate_image(post_id: str, image_prompt: str, week_number: int, year: int, category: str = 'love') -> str:
     """
-    Generate a square image via Gemini Imagen, apply category branding overlay, persist to MEDIA_ROOT.
+    Generate a 9:16 image via Gemini, apply category branding overlay, persist to MEDIA_ROOT.
     Also saves a raw (unbranded) backup as uuid_raw.png for clean Kling AI input.
     Returns the relative path within MEDIA_ROOT, e.g. 'posts/2026/14/uuid.png'.
     """
@@ -33,27 +58,29 @@ def generate_image(post_id: str, image_prompt: str, week_number: int, year: int,
 
     logger.info("Generating image for post %s (category=%s)", post_id, category)
 
-    result = client.models.generate_images(
-        model="imagen-4.0-generate-001",
-        prompt=full_prompt,
-        config=types.GenerateImagesConfig(
-            number_of_images=1,
-            aspect_ratio="9:16",
-            safety_filter_level="BLOCK_LOW_AND_ABOVE",
-            person_generation="ALLOW_ADULT",
+    result = client.models.generate_content(
+        model=IMAGE_MODEL,
+        contents=full_prompt,
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE"],
+            # 2K -> 1536x2752 raw, 1536x1920 after the 4:5 crop.  The 1K default
+            # yields 768x960, below Instagram's 1080x1350 feed size.
+            # person_generation is Vertex-only, so the old ALLOW_ADULT has no equivalent here.
+            image_config=types.ImageConfig(aspect_ratio="9:16", image_size="2K"),
         ),
     )
+
+    image_bytes = _extract_image_bytes(result)
 
     relative_dir = f"posts/{year}/{week_number}"
     abs_dir = Path(settings.MEDIA_ROOT) / relative_dir
     abs_dir.mkdir(parents=True, exist_ok=True)
 
-    image_bytes = result.generated_images[0].image.image_bytes
-
-    # Save raw backup — used by video generator for clean Kling AI input
+    # Save raw backup — used by video generator for clean Kling AI input.
+    # Gemini returns JPEG; re-encode to PNG so the .png the video step serves to
+    # Kling really is a PNG (Django's static serve types it by extension).
     raw_path = abs_dir / f"{post_id}_raw.png"
-    with open(raw_path, 'wb') as fh:
-        fh.write(image_bytes)
+    Image.open(io.BytesIO(image_bytes)).convert('RGB').save(raw_path, 'PNG')
 
     # Center-crop 9:16 raw image to 4:5 for the static feed post
     raw_img = Image.open(raw_path)
