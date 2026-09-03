@@ -21,7 +21,10 @@ STYLE_SUFFIX = (
     "Warm lifestyle photography, realistic, natural lighting, "
     "teal and navy color accents, Belgian urban or nature setting, "
     "inclusive, adults of various ages (18 to 75+), candid and authentic feel, "
-    "no text overlays, no logos, high quality."
+    "high quality. No readable text anywhere in the frame: no menu boards, "
+    "chalkboards, posters, signs, labels or shopfront lettering with legible "
+    "writing. Any signage must be blank, out of focus, or outside the frame. "
+    "No logos, no watermarks, no text overlays."
 )
 
 
